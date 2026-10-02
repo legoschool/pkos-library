@@ -79,3 +79,12 @@ canvas.map2d{display:block;width:100%;touch-action:none;cursor:grab}
 .place-row button{font-size:13px;padding:3px 8px}
 .card-sync-row{display:flex;align-items:flex-start;gap:10px}.card-sync-row span{display:flex;flex-direction:column;gap:2px}
 .card-sync-row small{color:var(--muted);font-size:12.5px}
+/* 카드 보기: 줄 높이를 카드 내용에 맞춘다(최소 높이만 주면 줄이 150px에 묶여 날짜 줄이 카드 밖으로 나간다). 날짜 줄은 카드 아래에 붙인다. */
+.notes.cards{grid-auto-rows:max-content}.notes.cards .note-row{display:flex;flex-direction:column}.notes.cards .note-row>*{flex-shrink:0}.notes.cards .note-meta{margin-top:auto;padding-top:14px}
+/* 휴대폰: 문서 위 단추 글자가 두 줄로 꺾이지 않게 하고, 원본 단추가 있으면 수정 날짜를 숨긴다. */
+@media(max-width:700px){.document-toolbar :is(button,a){white-space:nowrap}.document-toolbar .open-original{padding:7px 10px;font-size:13px}}
+@media(max-width:480px){.document-toolbar:has(.open-original) .document-state{display:none}}
+.selection-panel p{max-width:360px}
+/* 아래 노트북 들여쓰기 */
+.folder-list .nav-item.depth-1{padding-left:24px}.folder-list .nav-item.depth-2{padding-left:38px}.folder-list .nav-item.depth-3{padding-left:52px}.folder-list .sub-folder svg{width:15px;height:15px}
+.guide-manual{display:block;margin:-4px 0 16px;color:#5b4a99;font-size:14px;font-weight:600}.guide-manual[hidden]{display:none}
