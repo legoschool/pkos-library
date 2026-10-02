@@ -1,6 +1,6 @@
 # PKOS · 나의지식서재
 
-흩어진 수업 자료와 그때의 생각을 모아 두고 다시 꺼내 쓰는 개인 기록 서재입니다. 로그인이 없고, 기록은 각자의 브라우저 안에 저장됩니다.
+흩어진 수업 자료와 그때의 생각을 모아 두고 다시 꺼내 쓰는 개인 기록 서재입니다. 로그인이 없고 기록은 각자의 브라우저 안에 저장됩니다.
 
 > 기록장·변환기·사이트 만들기의 사용법과 화면 사진, QR은 **PKOS 도구 모음**(https://legoschool.github.io/pkos-workshop/)에 모아 두었습니다.
 
@@ -17,12 +17,12 @@
 
 ## 내 주소로 운영하기 (5분)
 
-같은 서재를 내 주소로 운영하고 싶을 때 이 저장소를 씁니다. 깃허브 계정만 있으면 되고, 설치나 비용, 따로 설정할 열쇠는 필요 없습니다.
+같은 서재를 내 주소로 운영하고 싶을 때 이 저장소를 씁니다. 깃허브 계정만 있으면 되고 설치나 비용, 따로 설정할 열쇠는 필요 없습니다.
 
 1. 깃허브에 로그인합니다. 계정이 없다면 https://github.com 에서 가입합니다.
 2. 이 저장소 위쪽의 초록색 **Use this template**에서 **Create a new repository**를 누릅니다.
 3. Repository name에 이름(예: `my-pkos`)을 적고 **Public**을 고른 뒤 **Create repository**를 누릅니다. 무료 계정은 공개 저장소에서만 사이트를 켤 수 있습니다. 공개 저장소에는 앱 파일만 들어가고 내 기록은 올라가지 않습니다.
-4. 새 저장소의 **Settings**에서 왼쪽 **Pages**로 갑니다. Build and deployment의 Source는 **Deploy from a branch**로 두고, Branch에서 **main**과 **/ (root)**를 고른 뒤 **Save**를 누릅니다.
+4. 새 저장소의 **Settings**에서 왼쪽 **Pages**로 갑니다. Build and deployment의 Source는 **Deploy from a branch**로 두고 Branch에서 **main**과 **/ (root)**를 고른 뒤 **Save**를 누릅니다.
 5. 1~2분 뒤 새로 고침하면 같은 화면 위쪽에 `https://내아이디.github.io/my-pkos/` 같은 주소가 나옵니다.
 6. 그 주소 끝에 `?demo=1`을 붙여 체험 서재가, `manual/`을 붙여 설명서가 열리는지 확인합니다.
 
@@ -48,13 +48,13 @@
 
 ## 함께 쓰면 좋은 것
 
-- [PKOS 자료변환기](https://github.com/legoschool/pkos-fileconverter): 한글, PDF, 블로그 백업 같은 자료에서 글을 꺼내 Markdown으로 만듭니다. [코랩에서 바로 실행](https://colab.research.google.com/github/legoschool/pkos-fileconverter/blob/main/PKOS_%EB%B3%80%ED%99%98%EA%B8%B0.ipynb)할 수 있고, 「파일 → 드라이브에 사본 저장」으로 내 사본을 만들 수 있습니다. Windows용은 [릴리스](https://github.com/legoschool/pkos-fileconverter/releases/tag/v0.1.0)에 있습니다.
+- [PKOS 자료변환기](https://github.com/legoschool/pkos-fileconverter): 한글, PDF, 블로그 백업 같은 자료에서 글을 꺼내 Markdown으로 만듭니다. [코랩에서 바로 실행](https://colab.research.google.com/github/legoschool/pkos-fileconverter/blob/main/PKOS_%EB%B3%80%ED%99%98%EA%B8%B0.ipynb)할 수 있고 「파일 → 드라이브에 사본 저장」으로 내 사본을 만들 수 있습니다. Windows용은 [릴리스](https://github.com/legoschool/pkos-fileconverter/releases/tag/v0.1.0)에 있습니다.
 - [자료변환기 실습 교재](https://legoschool.github.io/pkos-textbook/): 설치부터 변환까지 따라 하는 교재입니다.
 - [PKOS 이전판](https://github.com/legoschool/pkos): 구글 드라이브에 저장하는 기록장입니다(2026-09-11 기준). [만든 과정](https://github.com/legoschool/pkos/blob/main/docs/%EB%A7%8C%EB%93%A0%EA%B3%BC%EC%A0%95.md)도 이 저장소에 있습니다.
 
 ## 이용 조건
 
-**CC BY-NC 4.0**(저작자표시 · 비영리)을 따릅니다. 학교나 연수처럼 비영리로 쓰는 자리라면 사본을 만들어 고쳐 써도 됩니다. 이때 만든이와 이 저장소 주소를 밝히고, 고친 것이 있으면 고쳤다고 적어 주세요. 원문은 [LICENSE](LICENSE), 쉬운 설명은 [LICENSE.ko.md](LICENSE.ko.md)에 있습니다.
+**CC BY-NC 4.0**(저작자표시 · 비영리)을 따릅니다. 학교나 연수처럼 비영리로 쓰는 자리라면 사본을 만들어 고쳐 써도 됩니다. 이때 만든이와 이 저장소 주소를 밝히고 고친 것이 있으면 고쳤다고 적어 주세요. 원문은 [LICENSE](LICENSE), 쉬운 설명은 [LICENSE.ko.md](LICENSE.ko.md)에 있습니다.
 
 `vendor/`의 라이브러리는 각자의 이용 조건을 따릅니다. pdf.js와 DOMPurify는 Apache-2.0, marked와 fflate는 MIT이며 원문은 같은 폴더에 있습니다.
 
