@@ -66,9 +66,16 @@ export function safeName(s){let name=String(s||'제목 없음').replace(/[<>:"/\
 export function parseMarkdown(source,filename='기록.md'){
  let body=String(source).replace(/^\uFEFF/,''),meta={};
  const fm=/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(body);
- if(fm){body=body.slice(fm[0].length).trimStart();for(const line of fm[1].split(/\r?\n/)){const m=/^(title|tags|status|folder|review):\s*(.*)$/.exec(line);if(m){try{meta[m[1]]=JSON.parse(m[2]);}catch{meta[m[1]]=m[2];}}}}
+ if(fm){body=body.slice(fm[0].length).trimStart();for(const line of fm[1].split(/\r?\n/)){const m=/^(title|tags|status|folder|review|created|date|category|url|source):\s*(.*)$/.exec(line);if(m){try{meta[m[1]]=JSON.parse(m[2]);}catch{meta[m[1]]=/^".*"$/.test(m[2].trim())?m[2].trim().slice(1,-1):m[2];}}}}
  let title=typeof meta.title==='string'?meta.title:filename.replace(/\.[^.]+$/,'');const heading=/^# (.+)(?:\r?\n|$)/.exec(body);if(heading){title=heading[1];body=body.slice(heading[0].length).trimStart();}
- return {title,body,tags:Array.isArray(meta.tags)?meta.tags.filter(t=>typeof t==='string'):tagsOf(meta.tags||''),folder:typeof meta.folder==='string'?meta.folder:'수집함',status:statuses.includes(meta.status)?meta.status:'수집',reviewDate:typeof meta.review==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(meta.review)?meta.review:''};
+ const out={title,body,tags:Array.isArray(meta.tags)?meta.tags.filter(t=>typeof t==='string'):tagsOf(meta.tags||''),folder:typeof meta.folder==='string'?meta.folder:'수집함',status:statuses.includes(meta.status)?meta.status:'수집',reviewDate:typeof meta.review==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(meta.review)?meta.review:''};
+ // 변환기가 붙인 date·category·url·source와 이 앱이 내보낸 created를 살린다. 블로그 글은 쓴 날을 date로, 변환한 문서는 파일 수정일을 만든 날로 둔다(서재 현황에서 추정 연도).
+ const str=v=>typeof v==='string'?v.trim():'',day=[/^\d{4}-\d{2}-\d{2}/.exec(str(meta.date))?.[0]].find(d=>d&&Number.isFinite(Date.parse(d))),url=/^https?:\/\/\S+$/.test(str(meta.url))?str(meta.url):'',category=str(meta.category);
+ if(Number.isFinite(Date.parse(str(meta.created))))out.created=new Date(str(meta.created)).toISOString();else if(day)out.created=day+'T00:00:00.000Z';
+ if(category&&category.length<=40&&!out.tags.includes(category))out.tags.push(category);
+ if(url){out.openUrl=url;if(/blog\.naver\.com|tistory\.com|brunch\.co\.kr/.test(url)){out.kind='blog';out.sourceUrl=url;if(day)out.date=day;}}
+ else if(str(meta.source)&&day)out.kind='doc';
+ return out;
 }
 export function validateBackup(data){
  if(!data||data.format!=='pkem-backup'||data.schema!==SCHEMA||!Array.isArray(data.notes)||!Array.isArray(data.folders)||!Array.isArray(data.assets))throw Error('이 앱의 백업 파일이 아닙니다.');

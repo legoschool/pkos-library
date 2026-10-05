@@ -8,9 +8,9 @@ export function setupGuide({demo=false}={}) {
  const steps=[
   {title:'나의지식서재에 오신 것을 환영해요',text:'펼친 책은 나의 기록, 연결된 세 점은 생각 사이의 관계를 뜻합니다. 쓰고, 찾고, 연결하는 방법을 잠깐 살펴볼까요?'},
   {target:'.sidebar [data-action="new"]',title:'떠오른 생각부터 한 줄',text:'새 기록에서 제목과 내용을 적으세요. 편집 내용은 자동 저장되며, 저장 버튼도 사용할 수 있습니다. “저장됨” 표시를 확인해 주세요.'},
-  {target:'.sidebar [data-action="search"]',title:'쌓아 둔 기록을 다시 꺼내기',text:'제목과 본문으로 기록을 찾습니다. 노트북과 태그로 분류하면 나중에 찾기가 더 쉬워져요.'},
+  {target:'.sidebar [data-action="search"]',title:'쌓아 둔 기록을 다시 꺼내기',text:'제목과 본문으로 기록을 찾습니다. 「서재 현황」에서 출처·연도·주제별로 몇 개가 있는지 보고, 숫자를 누르면 그 기록이 나옵니다. 조건을 겹쳐 고르고 「AI에게 건네기」로 복사할 수도 있어요.'},
   {target:'.sidebar [data-view="graph"]',title:'지식맵으로 생각 사이의 연결 보기',text:'제목·본문·태그 등을 기준으로 기록의 관계를 보여 줍니다. 기록이 쌓이면 연결 기준과 비중을 바꿔 살펴보세요.'},
-  {target:'.top-actions [data-action="settings"]',title:'소중한 기록은 백업까지',text:'기록은 지금 사용하는 브라우저에 저장됩니다. 백업에서 “첨부를 포함한 백업 내보내기”로 사본을 보관하세요. 이 안내는 상단 “사용 안내”에서 다시 볼 수 있습니다.'}
+  {target:'.top-actions [data-action="settings"]',title:'소중한 기록은 백업까지',text:'기록은 지금 사용하는 브라우저에 저장됩니다. 백업에서 “첨부를 포함한 백업 내보내기”로 사본을 보관하세요. 카드의 원본 열기·탐색기는 PC에 구글 드라이브 데스크톱이 있고 폴더가 「오프라인으로 사용」이어야 바로 열립니다(설정 › 준비 조건). 이 안내는 상단 “사용 안내”에서 다시 볼 수 있습니다.'}
  ];
  let index=0,previousFocus=null,hadNav=false,frame=0;
  const card=guide.querySelector('.guide-card'),spot=guide.querySelector('.guide-spot');

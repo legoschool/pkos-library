@@ -84,7 +84,7 @@ export async function setupFolderSource({db,demo,toast,flush,changed}){
      if(sha!==row.sha||bytesTotal>50*1024*1024)throw Error('확인 후 파일이 바뀌었거나 크기 한도를 넘었습니다. 지금 확인을 다시 눌러 주세요.');
      const prior=existing.filter(n=>!n.deleted&&n.folderSource?.connection===config.connection&&n.folderSource.path===row.path);
      if(prior.some(n=>n.folderSource.sha===sha))continue;
-     const previous=prior.sort((a,b)=>b.created.localeCompare(a.created))[0];
+     const previous=prior.sort((a,b)=>(b.folderSource.importedAt||b.created).localeCompare(a.folderSource.importedAt||a.created))[0];
      const types={png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',pdf:'application/pdf',mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',m4a:'audio/mp4',mp4:'video/mp4',webm:'video/webm'},type=file.type||types[file.name.split('.').pop().toLowerCase()]||'application/octet-stream';
      const asset={id:uid(),name:file.name,type,blob:new Blob([bytes],{type})};
      const parsed=/\.(md|txt)$/i.test(file.name)?parseMarkdown(new TextDecoder().decode(bytes),file.name):{title:file.name,body:'폴더에서 가져온 원본 파일입니다. 지원하는 문서는 첨부의 본문·이미지 추출 버튼을 사용하세요.'};
