@@ -41,7 +41,7 @@ class Store{
  // Generated cards marked updatable replace their earlier import when the user has not edited the content (no history, no attachments); trashed cards stay trashed.
  // A card the user edited or attached files to is kept as the user left it (no copy), so repeated imports never pile up duplicates.
  // A generated card sent with deleted:true retires the earlier one (it moves to the trash and can be restored).
- const contentKeys=['title','body','folder','tags','links','status','created','updated','updatable','openUrl','sourceUrl','localPath','sourcePath'],updates=[],vacated=new Set(),handled=new Set(),retiredIds=new Set();let skipped=0,kept=0;
+ const contentKeys=['title','body','folder','tags','links','status','created','updated','updatable','openUrl','sourceUrl','localPath','sourcePath','info','mdPath','kind','date'],updates=[],vacated=new Set(),handled=new Set(),retiredIds=new Set();let skipped=0,kept=0;
  for(const n of data.notes){const old=map.get(n.id);
   if(!old&&n.updatable===true&&n.deleted){handled.add(n.id);continue;}
   if(old&&n.updatable===true&&!n.attachments.length){

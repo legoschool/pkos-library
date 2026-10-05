@@ -220,3 +220,54 @@ button.cs-kind:hover{border-color:var(--accent);border-left-width:4px}
 .cs-hist small{font-size:10px}
 .cs-actions{display:flex;flex-wrap:wrap;gap:8px;margin:30px 0 10px}
 @media (max-width:700px){.cond-summary{padding:28px 20px 40px}.cond-summary h1{font-size:32px}}
+
+/* 정비(2026-10-05): 읽기 화면 속성 줄 하나, 자료 정보 상자, 본문 앞부분 */
+.page-tags{gap:6px;margin-bottom:22px}
+.page-tags .facet-line{display:contents}
+.page-tags .chip,.page-tags .tag{margin:0;min-height:30px;display:inline-flex;align-items:center;padding:4px 11px;border-radius:999px;font-size:12.5px;line-height:1.4}
+.page-tags .tag{background:#f4f2fa;color:#5d5278;border:1px solid transparent}
+.page-tags .tag:hover{background:#e9e4f6}
+.file-places{gap:0;padding:4px 18px;margin:0 0 26px;background:#fbfaf8}
+.info-rows{margin:0;padding:10px 0;display:grid;gap:7px}
+.info-rows>div{display:grid;grid-template-columns:84px 1fr;gap:10px;align-items:baseline}
+.info-rows dt{color:var(--muted);font-size:12.5px}
+.info-rows dd{margin:0;font-size:14px;color:var(--ink);overflow-wrap:anywhere}
+.info-rows .link-button{font-size:14px;padding:0}
+.place-rows{display:grid;gap:8px;padding:10px 0;border-top:1px solid var(--line)}
+.info-rows+.place-rows{border-top:1px solid var(--line)}
+.place-rows:first-child{border-top:0}
+.place-label{min-width:84px}
+.place-help{margin:0 0 10px;font-size:12px;color:var(--muted)}
+.excerpt-label{font-size:11px;letter-spacing:.6px;color:#a19b8e;margin:6px 0 10px}
+.excerpt-foot{margin:18px 0 6px;font-size:12.5px;color:var(--muted)}
+/* 목록 줄: 출처 점 */
+.eyebrow-name{display:inline-flex;align-items:center;gap:6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kind-dot{flex:none;width:7px;height:7px;border-radius:50%;background:var(--k-note)}
+.kind-dot.kind-doc{background:var(--k-doc)}
+.kind-dot.kind-blog{background:var(--k-blog)}
+.kind-dot.kind-video{background:var(--k-video)}
+.kind-dot.kind-hub{background:var(--k-hub)}
+/* 조건 칸: 목록을 밀지 않고 위에 뜬다 */
+.cond-panel{position:relative}
+.cond-panel[open]{max-height:none;overflow:visible}
+.cond-panel[open]>summary{color:var(--accent)}
+.cond-pop{display:none}
+.cond-panel[open] .cond-pop{display:block;position:absolute;left:-1px;right:-1px;top:calc(100% + 6px);z-index:30;max-height:min(62vh,560px);overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 6px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px rgba(40,34,70,.16)}
+/* 노트북이 많을 때 접기 */
+.folder-row{display:flex;align-items:center;min-width:0}
+.folder-row .nav-item{flex:1;min-width:0}
+.fold,.fold-space{flex:none;width:22px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;color:#9b9890;border-radius:6px}
+.fold:hover{background:#ecebe7;color:var(--ink)}
+.fold svg{width:13px;height:13px;transition:transform .15s}
+.fold.open svg{transform:rotate(90deg)}
+.folder-row .nav-item.sub-folder{padding-left:10px}
+.folder-row .nav-item.depth-2{padding-left:24px}
+.folder-row .nav-item.depth-3{padding-left:38px}
+.folder-row .sub-folder~*{}
+.folder-list .nav-item span{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3;overflow:hidden}
+.info-rows{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:28px;row-gap:7px}
+.info-rows>div.wide{grid-column:1/-1}
+@media (max-width:700px){.info-rows{grid-template-columns:1fr}.info-rows>div{grid-template-columns:76px 1fr}}
+.prose>blockquote:only-child{margin:0;padding:12px 16px;border-left:3px solid var(--line);background:#fbfaf8;color:var(--muted);font-size:14px}
+.info-rows .link-button{text-align:left}
+#cond-bar:empty{display:none}

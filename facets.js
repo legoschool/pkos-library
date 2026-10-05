@@ -66,7 +66,10 @@ export function formatOf(n,kind=kindOf(n)){
 const SOURCE_TAGS=new Set(['블로그','유튜브','블로그 비공개','영역','묶음']);
 const themeText=(n,kind)=>{const tags=(n.tags||[]).filter(t=>!SOURCE_TAGS.has(t)).join(' ');
  if(kind==='blog'||kind==='video')return n.title+' '+tags;
- return [n.title,tags,n.folder,kind==='note'?String(n.body||'').slice(0,1000):kind==='doc'||kind==='hub'?String(n.body||'').slice(0,400):''].join(' ');};
+ const info=Array.isArray(n.info)?n.info.map(r=>Array.isArray(r)?String(r[1]??''):'').join(' '):null;
+ if(kind==='doc')return [n.title,tags,n.folder,info??String(n.body||'').slice(0,400)].join(' ');
+ if(kind==='hub')return [n.title,tags,n.folder,info||'',String(n.body||'').slice(0,400)].join(' ');
+ return [n.title,tags,n.folder,kind==='note'?String(n.body||'').slice(0,1000):''].join(' ');};
 // 기록마다 한 줄씩: 출처, 연도, 형식, 영역(첫 노트북), 묶음(두 단계 노트북), 주제.
 // 파일 수정일로 짐작한 연도는 year에 넣지 않고 yearGuess에 둔다. 연도 표·연도 조건은 확실한 연도만 센다.
 export function buildIndex(notes,rules){

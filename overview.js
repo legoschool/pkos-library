@@ -41,7 +41,7 @@ ${special?`<section class="ov-block"><h2>정리할 거리</h2><p>${special}</p><
 ${demo?'<p class="hint">체험 서재의 가상 자료로 만든 현황입니다.</p>':''}</section>`;
 }
 // 목록 위 조건 줄: 걸린 조건(지우기 단추 달림), 조건 더하기 칸(숫자는 지금 목록에서 더했을 때 남는 수), 결과로 할 일
-export function condBarHTML(cond,fc,index,{open=false,total=0,years=[]}={}){
+export function condBarHTML(cond,fc,index,{open=false,active=true,total=0,years=[]}={}){
  const L=t=>index.label[t]||t,c=cond||{},chips=[];
  for(const k of c.kinds||[])chips.push([`출처 ${KINDS[k]}`,{kinds:k}]);
  if(c.y0||c.y1)chips.push([c.y0&&c.y0===c.y1?c.y0+'년':`${c.y0||'처음'}~${c.y1||'끝'}년`,{years:1}]);
@@ -56,15 +56,16 @@ export function condBarHTML(cond,fc,index,{open=false,total=0,years=[]}={}){
  const yearOpts=sel=>`<option value="">${sel==='y0'?'처음':'끝'}</option>`+years.map(y=>`<option ${c[sel]===y?'selected':''}>${y}</option>`).join('');
  const maxY=Math.max(1,...[...fc.years.values()]);
  return `<div class="cond-bar">${chips.length?`<div class="cond-on">${chips.map(([l,rm])=>`<button type="button" class="chip on" data-cond-remove="${q(rm)}" title="이 조건 빼기">${esc(l)} <span aria-hidden="true">×</span></button>`).join('')}<button type="button" class="link-button" data-action="cond-clear">조건 지우기</button></div>`:''}
-<details class="cond-panel" ${open?'open':''}><summary>조건 더하기 <small>출처 · 연도 · 주제 · 태그 · 형식</small></summary>
+${active?`<div class="cond-actions"><button type="button" class="quiet" data-action="handoff" ${total?'':'disabled'}>AI에게 건네기</button><button type="button" class="quiet" data-action="random3" ${total>2?'':'disabled'}>무작위 세 개</button><button type="button" class="quiet" data-action="cond-map" ${total?'':'disabled'}>지도로 보기</button><button type="button" class="quiet" data-action="cond-save">조건 저장</button></div>`:''}
+<details class="cond-panel" ${open?'open':''}><summary>조건 더하기 <small>출처 · 연도 · 주제 · 태그 · 형식</small></summary><div class="cond-pop">
 <div class="cond-group"><h3>출처</h3><p>${KIND_ORDER.filter(k=>fc.kinds.get(k)||on('kinds',k)).map(k=>chip('kinds',k,KINDS[k],fc.kinds.get(k)||0)).join('')}</p></div>
 <div class="cond-group"><h3>연도</h3><p class="cond-years"><label>처음<select data-cond-year="y0">${yearOpts('y0')}</select></label><label>끝<select data-cond-year="y1">${yearOpts('y1')}</select></label></p><div class="cond-hist">${[...fc.years.entries()].map(([y,n])=>`<button type="button" data-cond-set="${q({y0:y,y1:y})}" title="${y}년 ${num(n)}개"><i style="height:${Math.max(4,n/maxY*100).toFixed(0)}%"></i><small>${String(y).slice(2)}</small></button>`).join('')}</div></div>
 ${fc.themes.length||c.themes?.length?`<div class="cond-group"><h3>주제 ${mode('themeMode')}</h3><p>${fc.themes.map(([t,n])=>chip('themes',t,L(t),n)).join('')}${(c.themes||[]).filter(t=>!fc.themes.some(([x])=>x===t)).map(t=>chip('themes',t,L(t),0)).join('')}</p></div>`:''}
 ${fc.tags.length?`<div class="cond-group"><h3>태그 ${mode('tagMode')}</h3><p>${fc.tags.slice(0,40).map(([t,n])=>chip('tags',t,'# '+t,n)).join('')}</p></div>`:''}
 ${fc.formats.length>1?`<div class="cond-group"><h3>문서 형식</h3><p>${fc.formats.map(([f,n])=>chip('formats',f,f,n)).join('')}</p></div>`:''}
 ${fc.areas.length>1?`<div class="cond-group"><h3>노트북</h3><p>${fc.areas.slice(0,20).map(([a,n])=>chip('areas',a,a,n)).join('')}</p></div>`:''}
-</details>
-<div class="cond-actions"><button type="button" class="quiet" data-action="handoff" ${total?'':'disabled'}>AI에게 건네기</button><button type="button" class="quiet" data-action="random3" ${total>2?'':'disabled'}>무작위 세 개</button><button type="button" class="quiet" data-action="cond-map" ${total?'':'disabled'}>지도로 보기</button><button type="button" class="quiet" data-action="cond-save">조건 저장</button></div></div>`;
+</div></details>
+</div>`;
 }
 // 기록 읽기 화면의 속성 줄: 출처 · 연도 · 형식 · 주제(누르면 조건)
 export function facetLineHTML(row,index){

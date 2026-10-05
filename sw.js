@@ -1,4 +1,4 @@
-const CACHE='pkem-real-shell-v23';
+const CACHE='pkem-real-shell-v26';
 const SHELL=['./','index.html','style.css','app.js','onboarding.js','editor-tools.js','document-tools.js','browser-document-conversion.js','graph3d.js','graph-layout.js','map2d.js','map-compute.js','facets.js','overview.js','map-worker.js','card-sync.js','folder-backup.js','folder-source.js','reading-export.js','pdf-text.js','core.js','store.js','note-history.js','demo.js','pdf-viewer.js','vendor/pdfjs/pdf.mjs','vendor/pdfjs/pdf.worker.mjs','manifest.webmanifest','icon.svg','icon-192.png','icon-512.png','vendor/marked.js','vendor/purify.js','vendor/fflate.js'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('pkem-real-shell-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
