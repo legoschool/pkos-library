@@ -28,7 +28,8 @@ const canonWith=vocab=>w=>{if(w.length<3||w.charCodeAt(0)<0xac00)return w;const 
 const mergeSorted=(a,b)=>{const r=[];let i=0,j=0;while(i<a.length||j<b.length){const v=j>=b.length||(i<a.length&&a[i]<=b[j])?a[i++]:b[j++];if(r[r.length-1]!==v)r.push(v);}return r;};
 // 연도·형식·출처·묶음 표시와 영역(첫 노트북) 이름 태그는 주제가 아니라서 기록을 잇는 근거로 쓰지 않는다.
 const META_TAGS=new Set(['한글','PDF','PPT','워드','엑셀','문서','글','웹','사진','소리','영상','블로그','블로그 비공개','유튜브','묶음','영역','기타','드라이브문서']);
-export const plainTag=(t,n)=>!/^(19|20)\d\d$/.test(t)&&!META_TAGS.has(t)&&t!==String(n?.folder||'').split('/')[0];
+export const metaTag=t=>/^(19|20)\d\d$/.test(t)||META_TAGS.has(t);
+export const plainTag=(t,n)=>!metaTag(t)&&t!==String(n?.folder||'').split('/')[0];
 // 같은 문서: 자료 카드 가운데 제목과 본문 앞부분이 같은 것(드라이브 여러 폴더에 놓인 같은 파일).
 // 다른 형식: 제목 끝의 (한글)·(PDF)… 표시만 다른 자료 카드(같은 이름의 한글 파일과 PDF 파일).
 const FORMAT_MARK=/\s*\((한글|pdf|ppt|워드|엑셀|문서|글|웹)\)$/;

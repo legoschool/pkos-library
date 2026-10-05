@@ -1,5 +1,7 @@
 import {normalize,excerpt} from './core.js';
 // 서재 현황·찾기와 조합에 쓰는 자료 속성(출처·연도·형식·영역·주제).
+// 본문 글자가 없는 문서: 카드 본문이 '> …원본을 열어 봅니다.' 같은 안내 한 단락뿐이거나 글자가 30자보다 적다.
+const noText=n=>{const b=String(n.body||'').trim();return excerpt(b).length<30||/^>\s/.test(b)&&!b.split(/\n\s*\n/).slice(1).some(p=>p.trim());};
 // 카드에 써 넣지 않고 서재를 열 때 계산한다. 카드 동기화는 사용자가 고치지 않은 카드만 새 판으로 바꾸기 때문이다(store.js mergeBackup).
 export const KINDS={note:'직접 쓴 기록',doc:'문서',blog:'블로그 글',video:'영상',hub:'묶음·영역'};
 export const KIND_ORDER=['note','doc','blog','video','hub'];
@@ -79,7 +81,7 @@ export function buildIndex(notes,rules){
  for(const n of live){
   const kind=kindOf(n),y=yearOf(n,kind),parts=(n.folder||'수집함').split('/');
   rows.push({id:n.id,kind,year:y.guess?0:y.year,yearGuess:y.guess?y.year:0,guess:y.guess&&!!y.year,format:formatOf(n,kind),area:parts[0],group:parts.slice(0,2).join('/'),themes:themesOf(themeText(n,kind),compiled),tags:n.tags||[],
-   unlinked:!(n.links||[]).length&&!linked.has(n.id),due:!!n.reviewDate&&n.reviewDate<=today,thin:kind==='doc'&&excerpt(n.body).length<300,untagged:!(n.tags||[]).length});
+   unlinked:!(n.links||[]).length&&!linked.has(n.id),due:!!n.reviewDate&&n.reviewDate<=today,thin:kind==='doc'&&noText(n),untagged:!(n.tags||[]).length});
  }
  return {rows,byId:new Map(rows.map(r=>[r.id,r])),rules:compiled,label:Object.fromEntries(compiled.map(r=>[r.id,r.label]))};
 }
@@ -101,7 +103,7 @@ export function matchCond(r,c){
  if(c.special==='guess'&&!r.guess)return false;
  return true;
 }
-export const SPECIALS={untagged:'태그·주제 없는 기록',unlinked:'연결이 없는 기록',due:'다시 볼 날이 지난 기록',thin:'본문 앞부분이 없는 문서',guess:'연도를 추정한 기록'};
+export const SPECIALS={untagged:'태그·주제 없는 기록',unlinked:'연결이 없는 기록',due:'다시 볼 날이 지난 기록',thin:'본문 글자가 없는 문서',guess:'연도를 추정한 기록'};
 const count=(m,k,n=1)=>m.set(k,(m.get(k)||0)+n);
 const sorted=m=>[...m.entries()].sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0]),'ko'));
 // 조건 줄 단추의 숫자: 지금 목록(rows)에서 그 값을 더했을 때 남는 수
