@@ -5,17 +5,17 @@ import {layoutGraph,rankHubs,pointScale,separate,pickLabels} from './graph-layou
 let view={k:1,x:0,y:0},lastMap='';
 const MIN=.4,MAX=12,SVG_MAX=600,GRAY='#8a8a85';
 export function mountGraph2D(area,notes,edges,total,o={}){
- const {criteria=1,positions=null,caption='',colorOf=()=>'',groupOf=n=>n.folder||'',groupLabel=g=>g.split('/').pop(),legend=[],entityOf=()=>'',onOpen=()=>{},onEdge=()=>{}}=o;
+ const {criteria=1,positions=null,caption='',colorOf=()=>'',groupOf=n=>n.folder||'',groupLabel=g=>g.split('/').pop(),legend=[],entityOf=()=>'',onOpen=()=>{},onEdge=()=>{},labelOf=n=>n.title||'제목 없음'}=o;
  const canvasMode=notes.length>SVG_MAX,signature=notes.length+':'+(notes[0]?.id||'')+':'+(notes.at(-1)?.id||'');
  // A different set of records starts from the whole-map view; redrawing the same map keeps the zoom.
  if(signature!==lastMap){view={k:1,x:0,y:0};lastMap=signature;}
- let disposed=false,frame=0,drag=null,blockedClick=false,size='',base=[],pointers=new Map(),pinch=null,hover='',focusSet=null,focusLabel='',query='',queryTimer=0,screen=[];
+ let disposed=false,frame=0,drag=null,blockedClick=false,size='',base=[],pointers=new Map(),pinch=null,hover='',pinned='',focusSet=null,focusLabel='',query='',queryTimer=0,screen=[];
  const ids=notes.map(n=>n.id),index=new Map(ids.map((id,i)=>[id,i])),ranked=rankHubs(ids,edges),degree=new Float64Array(notes.length);
  const adj=notes.map(()=>[]);edges.forEach((e,i)=>{const a=index.get(e.a),b=index.get(e.b);if(a===undefined||b===undefined)return;degree[a]++;degree[b]++;adj[a].push([b,i]);adj[b].push([a,i]);});
  const colors=notes.map(n=>colorOf(n)||'#9986be'),groups=notes.map(n=>groupOf(n));
  let layout=null;if(!positions)layout=layoutGraph(ids,edges);
  const norm=i=>positions?positions[i]:[layout.get(ids[i]).x,layout.get(ids[i]).y];
- const title=n=>{const t=n.title||'제목 없음';return t.length>16?t.slice(0,15)+'…':t;};
+ const title=n=>{const t=labelOf(n)||'제목 없음';return t.length>16?t.slice(0,15)+'…':t;};
  area.innerHTML=`<div class="map3d-controls map2d-controls" aria-label="지식맵 확대와 이동"><button type="button" data-zoom="in" aria-label="확대">+</button><button type="button" data-zoom="out" aria-label="축소">−</button><button type="button" data-zoom="reset">전체 보기</button><label class="map-find">지도에서 찾기 <input type="search" data-map-find placeholder="기록 제목" aria-label="지도에서 기록 찾기"></label><span class="map-find-count" role="status"></span><span class="hint">휠이나 두 손가락으로 확대·축소, 빈 곳을 끌어 이동</span></div>`
   +(legend.length?`<div class="map-legend" role="group" aria-label="주제별 색">${legend.map(l=>`<button type="button" class="map-legend-item" data-legend="${esc(l.key)}" aria-pressed="false"><i style="background:${l.color}"></i>${esc(l.label)} <small>${l.count}</small></button>`).join('')}</div>`:'')
   +(canvasMode?'<canvas class="map2d map2d-canvas" tabindex="0" role="img" aria-label="기록 연결 지도. 더하기와 빼기로 확대, 방향키로 이동. 기록은 아래 목록에서도 찾을 수 있습니다."></canvas><div class="map-tip" hidden></div>':'<svg class="map2d" role="group" tabindex="0" aria-label="기록 연결 지도. 더하기와 빼기로 확대, 방향키로 이동"></svg>')
@@ -35,7 +35,8 @@ export function mountGraph2D(area,notes,edges,total,o={}){
   return [...m.values()].filter(c=>c.count>=3).map(c=>({...c,x:c.x/c.count,y:c.y/c.count})).sort((a,b)=>b.count-a.count);
  }
  let clusterList=[];
- const lit=i=>{if(focusSet&&!focusSet.has(i))return false;if(hover!==''){const h=index.get(hover);return i===h||adj[h].some(([j])=>j===i);}return true;};
+ const near=()=>hover!==''?hover:pinned;
+ const lit=i=>{if(focusSet&&!focusSet.has(i))return false;const c=near();if(c!==''&&index.has(c)){const h=index.get(c);return i===h||adj[h].some(([j])=>j===i);}return true;};
  function labelsFor(w,h){
   const narrow=innerWidth<=700,cw=narrow?17:12.5,lh=narrow?20:15,items=[];
   const inside=(x,y)=>x>-10&&x<w+10&&y>-10&&y<h+10;
@@ -44,7 +45,7 @@ export function mountGraph2D(area,notes,edges,total,o={}){
   const clusterNames=new Set(items.map(t=>t.text));
   const nodeMax=notes.length<10?notes.length:Math.round((w<500?3:7)*Math.max(overview?0:1,Math.min(4,view.k-1)));
   let added=0;for(const id of ranked){if(added>=nodeMax)break;const i=index.get(id),s=screen[i];if(!inside(s.x,s.y)||!lit(i))continue;const text=title(notes[i]);if(clusterNames.has(text))continue;items.push({id,x:s.x,y:s.y+s.r+12,text});added++;}
-  if(hover!==''){const i=index.get(hover),s=screen[i];items.unshift({id:hover,x:s.x,y:s.y+s.r+12,text:title(notes[i])});}
+  const c=near();if(c!==''&&index.has(c)){const i=index.get(c),s=screen[i];items.unshift({id:c,x:s.x,y:s.y+s.r+12,text:title(notes[i])});}
   // keep every label fully on screen: pull its centre inward by half its estimated width
   for(const t of items){const half=[...t.text].length*(t.cluster?cw*1.1:cw)/2+4;t.x=Math.max(half,Math.min(w-half,t.x));}
   const chosen=pickLabels(items,overview?(w<500?8:18)+nodeMax:nodeMax+1,{charWidth:cw,height:lh});
@@ -53,22 +54,22 @@ export function mountGraph2D(area,notes,edges,total,o={}){
  function project(w,h){const grow=Math.min(1.7,Math.max(.8,Math.sqrt(view.k)));screen=base.map(p=>({x:w/2+(p.x-w/2)*view.k+view.x,y:h/2+(p.y-h/2)*view.k+view.y,r:p.r*grow}));}
  function drawSVG(w,h){
   surface.setAttribute('viewBox','0 0 '+w+' '+h);surface.style.height=h+'px';
-  const labels=labelsFor(w,h),nodeLabels=new Map(labels.filter(t=>!t.cluster).map(t=>[t.id,t])),dim=focusSet||hover!=='';
+  const labels=labelsFor(w,h),nodeLabels=new Map(labels.filter(t=>!t.cluster).map(t=>[t.id,t])),dim=focusSet||near()!=='';
   const ordered=notes.map((n,i)=>i).sort((a,b)=>(nodeLabels.has(ids[a])-nodeLabels.has(ids[b]))||(lit(a)-lit(b)));
   surface.classList.toggle('is-focus',dim);
-  surface.innerHTML=edges.map((e,i)=>{const a=index.get(e.a),b=index.get(e.b),s=screen[a],t=screen[b],on=!dim||(lit(a)&&lit(b)&&(hover===''||e.a===hover||e.b===hover));return `<g class="graph-edge${on?' is-near':''}" data-action="graph-reason" data-edge="${i}" tabindex="0" role="button" aria-label="${esc(e.reasons.join('; '))}"><title>${esc(e.reasons.join('; '))}</title><line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}"/><line class="edge-hit" x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}"/></g>`;}).join('')
-   +ordered.map(i=>{const n=notes[i],s=screen[i],l=nodeLabels.get(n.id);return `<g data-note="${n.id}" class="${lit(i)?'is-near':''}" tabindex="0" role="link" aria-label="${esc(n.title)}"><title>${esc(n.title)}</title><circle cx="${s.x}" cy="${s.y}" r="${s.r}" style="fill:${colors[i]}"/>${l?`<text x="${l.x}" y="${l.y}" text-anchor="middle" dominant-baseline="middle">${esc(l.text)}</text>`:''}</g>`;}).join('')
+  surface.innerHTML=edges.map((e,i)=>{const a=index.get(e.a),b=index.get(e.b),s=screen[a],t=screen[b],on=!dim||(lit(a)&&lit(b)&&(near()===''||e.a===near()||e.b===near()));return `<g class="graph-edge${on?' is-near':''}" data-action="graph-reason" data-edge="${i}" tabindex="0" role="button" aria-label="${esc(e.reasons.join('; '))}"><title>${esc(e.reasons.join('; '))}</title><line x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}"/><line class="edge-hit" x1="${s.x}" y1="${s.y}" x2="${t.x}" y2="${t.y}"/></g>`;}).join('')
+   +ordered.map(i=>{const n=notes[i],s=screen[i],l=nodeLabels.get(n.id);return `<g data-note="${n.id}" class="${lit(i)?'is-near':''}${n.id===pinned?' is-picked':''}" tabindex="0" role="link" aria-label="${esc(labelOf(n))}"><title>${esc(labelOf(n))}</title><circle cx="${s.x}" cy="${s.y}" r="${s.r}" style="fill:${colors[i]}"/>${l?`<text x="${l.x}" y="${l.y}" text-anchor="middle" dominant-baseline="middle">${esc(l.text)}</text>`:''}</g>`;}).join('')
    +`<g class="map-clusters" aria-hidden="true">${labels.filter(t=>t.cluster).map(t=>`<text x="${t.x}" y="${t.y}" text-anchor="middle" dominant-baseline="middle">${esc(t.text)}</text>`).join('')}</g>`;
  }
  function drawCanvas(w,h){
   const dpr=devicePixelRatio||1;surface.style.height=h+'px';surface.style.width='100%';
   if(surface.width!==Math.round(w*dpr)||surface.height!==Math.round(h*dpr)){surface.width=Math.round(w*dpr);surface.height=Math.round(h*dpr);}
   const ctx=surface.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
-  const dim=focusSet||hover!=='';
+  const dim=focusSet||near()!=='';
   ctx.lineWidth=1;
   for(const pass of dim?[false,true]:[true]){
    ctx.strokeStyle=pass?(dim?'rgba(99,84,164,.55)':'rgba(120,112,140,.28)'):'rgba(120,112,140,.07)';ctx.beginPath();
-   edges.forEach(e=>{const a=index.get(e.a),b=index.get(e.b),on=!dim||(lit(a)&&lit(b)&&(hover===''||e.a===hover||e.b===hover));if(on!==pass)return;const s=screen[a],t=screen[b];ctx.moveTo(s.x,s.y);ctx.lineTo(t.x,t.y);});ctx.stroke();
+   edges.forEach(e=>{const a=index.get(e.a),b=index.get(e.b),on=!dim||(lit(a)&&lit(b)&&(near()===''||e.a===near()||e.b===near()));if(on!==pass)return;const s=screen[a],t=screen[b];ctx.moveTo(s.x,s.y);ctx.lineTo(t.x,t.y);});ctx.stroke();
   }
   const order=notes.map((n,i)=>i).sort((a,b)=>lit(a)-lit(b));
   for(const i of order){const s=screen[i];if(s.x<-20||s.x>w+20||s.y<-20||s.y>h+20)continue;ctx.globalAlpha=lit(i)?1:.13;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);ctx.fillStyle=colors[i];ctx.fill();ctx.lineWidth=1.2;ctx.strokeStyle='#fff';ctx.stroke();}
@@ -114,7 +115,7 @@ export function mountGraph2D(area,notes,edges,total,o={}){
   if(!pointers.has(e.pointerId)){// hover: highlight a record and its neighbours
    const p=point(e.clientX,e.clientY),i=canvasMode?hit(p.x,p.y):index.get(e.target.closest?.('[data-note]')?.dataset.note??'');const id=i===undefined||i<0?'':ids[i];
    if(id!==hover){hover=id;schedule();}
-   if(tip){if(id){tip.hidden=false;tip.textContent=notes[i].title||'제목 없음';const r=area.getBoundingClientRect();tip.style.left=(e.clientX-r.left+14)+'px';tip.style.top=(e.clientY-r.top+14)+'px';}else tip.hidden=true;}
+   if(tip){if(id){tip.hidden=false;tip.textContent=labelOf(notes[i])||'제목 없음';const r=area.getBoundingClientRect();tip.style.left=(e.clientX-r.left+14)+'px';tip.style.top=(e.clientY-r.top+14)+'px';}else tip.hidden=true;}
    if(canvasMode)surface.style.cursor=id?'pointer':'';return;}
   pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pinch&&pointers.size===2){const [a,b]=[...pointers.values()],d=Math.hypot(a.x-b.x,a.y-b.y),m=point((a.x+b.x)/2,(a.y+b.y)/2);zoomAt(pinch.k*d/Math.max(1,pinch.d)/view.k,m.x,m.y);return;}
@@ -128,9 +129,14 @@ export function mountGraph2D(area,notes,edges,total,o={}){
  surface.addEventListener('click',e=>{
   if(blockedClick){e.preventDefault();e.stopPropagation();blockedClick=false;return;}
   if(!canvasMode)return;const p=point(e.clientX,e.clientY),i=hit(p.x,p.y);
-  if(i>=0){onOpen(ids[i]);return;}const k=hitEdge(p.x,p.y);if(k>=0)onEdge(k);
+  if(i>=0){e.stopPropagation();onOpen(ids[i]);return;}const k=hitEdge(p.x,p.y);if(k>=0){e.stopPropagation();onEdge(k);}
  },true);
  const resize=new ResizeObserver(schedule);resize.observe(area);draw();
- return ()=>{disposed=true;cancelAnimationFrame(frame);clearTimeout(queryTimer);resize.disconnect();};
+ const dispose=()=>{disposed=true;cancelAnimationFrame(frame);clearTimeout(queryTimer);resize.disconnect();};
+ // 미리 보기와 함께 쓰는 조작: 고른 기록 밝히기, 그 기록과 이웃만 보기, 이웃만 보기 끄기
+ dispose.pin=id=>{pinned=id&&index.has(id)?id:'';schedule();};
+ dispose.focusAround=id=>{const k=index.get(id);if(k===undefined)return;const set=new Set([k,...adj[k].map(([j])=>j)]);setFocus(set,'peek');fit(set);};
+ dispose.clearFocus=()=>{if(focusLabel==='peek')setFocus(null,'');};
+ return dispose;
 }
 export const resetMapView=()=>{view={k:1,x:0,y:0};};

@@ -1,4 +1,4 @@
-import {connectionEvidence,prepareConnectionData,normalize} from './core.js';
+import {connectionEvidence,prepareConnectionData,normalize,plainTag} from './core.js';
 import {layoutGraph} from './graph-layout.js';
 // Knowledge-map computation shared by the worker and the main-thread fallback:
 // choose which records to show, find each record's strongest links, and lay them out.
@@ -22,7 +22,7 @@ export function buildEdges(list,criteria,weights={}){
  // Large maps: shortlist neighbours through shared rare words, tags, notebooks and direct links, then score only those.
  const n=list.length,index=new Map(list.map((x,i)=>[x.id,i])),postings=new Map(),tokens=list.map(()=>[]);
  const add=(i,t)=>{let p=postings.get(t);if(!p)postings.set(t,p=[]);if(p[p.length-1]!==i){p.push(i);tokens[i].push(t);}};
- list.forEach((x,i)=>{for(const t of x.tags||[])add(i,'#'+normalize(t));add(i,'@'+topicKey(x));const d=prepared.get(x.id);for(const w of d.all.keys())add(i,w);});
+ list.forEach((x,i)=>{for(const t of x.tags||[])if(plainTag(t,x))add(i,'#'+normalize(t));add(i,'@'+topicKey(x));const d=prepared.get(x.id);for(const w of d.all.keys())add(i,w);});
  const linked=list.map(()=>new Set());
  list.forEach((x,i)=>{for(const id of prepared.get(x.id).out){const j=index.get(id);if(j!==undefined){linked[i].add(j);linked[j].add(i);}}});
  const maxDf=Math.max(40,Math.min(120,Math.round(n*.02))),WINDOW=8,score=new Float64Array(n),touched=[];
