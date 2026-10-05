@@ -271,3 +271,16 @@ button.cs-kind:hover{border-color:var(--accent);border-left-width:4px}
 .prose>blockquote:only-child{margin:0;padding:12px 16px;border-left:3px solid var(--line);background:#fbfaf8;color:var(--muted);font-size:14px}
 .info-rows .link-button{text-align:left}
 #cond-bar:empty{display:none}
+/* 구글 드라이브 미리보기(카드 읽기 화면)와 바둑판 그림 */
+.preview-bar{display:flex;justify-content:flex-end;margin:-14px 0 14px}
+.preview-toggle{font-size:13px;color:var(--accent)}
+.preview-toggle svg{width:15px;height:15px}
+.drive-preview{margin:0 0 26px}
+.drive-preview iframe{display:block;width:100%;height:min(78vh,900px);border:1px solid var(--line);border-radius:10px;background:#f4f3f0}
+.drive-preview.kind-video iframe{height:auto;aspect-ratio:16/9}
+.drive-preview.kind-folder iframe{height:min(60vh,620px)}
+.drive-preview .hint{margin:6px 2px 0}
+.notes.cards .thumb{display:block;width:calc(100% + 28px);margin:-14px -14px 12px;height:140px;object-fit:cover;object-position:top;border-radius:8px 8px 0 0;border-bottom:1px solid var(--line);background:#f4f3f0}
+.notes.cards .thumb.broken{display:none}
+@media (max-width:700px){.drive-preview iframe{height:70vh}}
+.notes.cards .thumb{pointer-events:none;user-select:none;-webkit-user-drag:none}
