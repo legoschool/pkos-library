@@ -280,6 +280,7 @@ figcaption{font-size:14px;color:var(--muted);margin-top:8px;text-align:center}
 <p>본문 위 도구줄에는 「첨부」, 「사진 촬영」, 「녹음」, 「받아쓰기」가 있습니다. 첨부한 파일은 기록과 함께 저장되고 백업에도 들어갑니다.</p>
 
 
+<section id="new-tools"><h2>새 기능: 블록·데이터베이스·OCR·음성·의미 검색</h2><ol><li>기록 편집 도구줄의 <strong>블록으로 편집</strong>에서 문단을 나누어 쓰고 순서를 옮깁니다. 기존 Markdown을 그대로 보존합니다.</li><li>왼쪽 <strong>새 데이터베이스</strong>에서 속성·행을 추가합니다. 표·보드·달력·목록·갤러리·날짜 순 보기, 필터·정렬, CSV 가져오기와 저장을 쓸 수 있습니다. 수식은 <code>[수량] * [단가]</code>처럼 사칙연산을 쓰고, 연결 개수 속성으로 연결한 기록 수를 셉니다.</li><li>이미지나 스캔 PDF를 첨부하고 <strong>스캔 문자 인식</strong>을 누릅니다. PDF는 한 번에 최대 50쪽을 선택합니다. 인식 결과를 고친 뒤 원본에 연결된 새 기록으로 저장합니다.</li><li>음성 첨부의 <strong>음성 파일 전사</strong>를 누릅니다. 설정에서 자동 시작을 켤 수 있습니다. 최대 30분의 음성을 기기에서 처리하며 처음에는 모델 다운로드가 필요합니다. 한국어·영어·일본어를 선택할 수 있고 오인식은 저장 전에 수정합니다.</li><li>왼쪽 <strong>AI 의미로 찾기</strong>에 찾고 싶은 내용을 적습니다. 다국어 문장 모델을 최초 다운로드하고 색인을 만든 뒤 표현이 비슷한 기록을 찾습니다. 결과의 유사도는 정확도나 확률이 아닙니다.</li><li>설정의 <strong>PC · 휴대폰 구글 동기화</strong>에서 같은 계정을 연결합니다. 공개 OAuth 클라이언트 ID를 먼저 준비해야 합니다. <a href="../cloud-setup.html">구글 연결 설정 안내</a></li><li>옛 <code>.ppt</code>는 구글 연결 후 <strong>구글로 변환하여 미리보기</strong>를 누릅니다. 파일을 내 드라이브로 보내 Google Slides와 PDF로 바꾸며, 변환용 Slides는 휴지통으로 옮깁니다. PDF 결과는 기기에 남아 다음에는 다시 전송하지 않습니다.</li></ol><p><strong>현재 범위:</strong> 앱 종료 후 동기화·영구 로그인, Notion 전체 블록·수식·집계·협업·자동화와 동일한 기능은 아직 없습니다. 동기화는 로그인 후 앱을 열고 편집을 마쳤을 때 동작합니다. 실제 구글 계정 연결과 옛 PPT 변환은 계정 설정 후 검증해야 합니다.</p><p>데이터베이스 구조·내용은 .pkem 백업에 포함되며 Markdown ZIP에도 JSON 사본이 들어갑니다. PDF 설명서는 기존 기본 사용법이며, 이 절이 확장 기능의 최신 안내입니다.</p></section>
 <h3 id="PDFPPTX를-쪽별로-보기">PDF·PPTX를 쪽별로 보기</h3>
 
 <ol>
@@ -292,7 +293,7 @@ figcaption{font-size:14px;color:var(--muted);margin-top:8px;text-align:center}
 
 <figure><a href="img/35-page-preview.png" target="_blank" rel="noopener"><img src="img/35-page-preview.png" alt="PPTX 페이지 목록과 한 장 보기" width="1380" height="960" loading="lazy"></a><figcaption>PPTX 페이지 목록과 한 장 보기</figcaption></figure>
 
-<p>PPTX 미리보기는 파일을 외부 변환 서버로 보내지 않습니다. 글꼴·일부 도형은 PowerPoint 원본과 다를 수 있고 애니메이션은 재생하지 않습니다. 원본 모양을 그대로 보려면 PDF로 저장한 사본을 함께 첨부하세요. 옛 <code>.ppt</code> 파일은 PowerPoint 또는 LibreOffice에서 <code>.pptx</code>나 PDF로 저장한 사본이 필요합니다.</p>
+<p>PPTX 미리보기는 파일을 외부 변환 서버로 보내지 않습니다. 글꼴·일부 도형은 PowerPoint 원본과 다를 수 있고 애니메이션은 재생하지 않습니다. 원본 모양을 그대로 보려면 PDF로 저장한 사본을 함께 첨부하세요. 옛 <code>.ppt</code>는 위 새 기능 안내의 구글 변환을 쓰거나 PowerPoint·LibreOffice에서 저장한 사본을 첨부합니다.</p>
 
 
 <ol start="5">

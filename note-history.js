@@ -1,11 +1,12 @@
+import {parseDatabase} from './database-model.js';
 // History belongs to the note and commits in the same IndexedDB transaction.
-export const historyFields={title:'제목',body:'본문',folder:'노트북',tags:'태그',status:'상태',reviewDate:'다시 볼 날짜'};
+export const historyFields={title:'제목',body:'본문',folder:'노트북',tags:'태그',status:'상태',reviewDate:'다시 볼 날짜',database:'데이터베이스'};
 const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 export function withHistory(previous,next,{undoOf}={}){
  const history=structuredClone(previous?.history||[]);
  if(previous){
   const changes={};
-  for(const field of Object.keys(historyFields))if(!same(previous[field],next[field]))changes[field]={before:structuredClone(previous[field]),after:structuredClone(next[field])};
+  for(const field of Object.keys(historyFields))if(!same(previous[field]??'',next[field]??''))changes[field]={before:structuredClone(previous[field]??''),after:structuredClone(next[field]??'')};
   if(Object.keys(changes).length)history.push({id:crypto.randomUUID(),at:next.updated,revision:next.revision,changes,...(undoOf?{undoOf}:{})});
  }
  return {...next,history};
@@ -34,6 +35,7 @@ export function validateHistory(note){
   for(const [field,c]of Object.entries(h.changes)){
    const valid=v=>field==='tags'?Array.isArray(v)&&v.every(t=>typeof t==='string'):typeof v==='string'&&(field!=='status'||['수집','정리 중','활용','보관'].includes(v));
    if(!Object.hasOwn(historyFields,field)||!c||!valid(c.before)||!valid(c.after)||same(c.before,c.after))throw Error('변경 이력의 항목이 손상되었습니다.');
+   if(field==='database'){for(const v of [c.before,c.after])if(v)parseDatabase(v);}
   }
   if(h.undoOf!==undefined){const original=ids.get(h.undoOf);if(!original||[...ids.values()].some(x=>x.undoOf===h.undoOf)||!same(Object.keys(original.changes).sort(),Object.keys(h.changes).sort())||Object.keys(h.changes).some(f=>!same(original.changes[f].before,h.changes[f].after)||!same(original.changes[f].after,h.changes[f].before)))throw Error('되돌리기 이력이 손상되었습니다.');}
   ids.set(h.id,h);revision=h.revision;

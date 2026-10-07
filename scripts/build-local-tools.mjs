@@ -1,0 +1,12 @@
+import {build} from 'esbuild';
+import {mkdir,copyFile,readdir,writeFile,readFile} from 'node:fs/promises';
+const root=new URL('../',import.meta.url);
+const browserOnly={name:'exclude-node-only-dependencies',setup(build){build.onResolve({filter:/^(node:|sharp$)|(?:^|\/)onnx-node\.js$/},args=>({path:args.path,namespace:'browser-stub'}));build.onLoad({filter:/.*/,namespace:'browser-stub'},args=>({contents:args.path==='sharp'||args.path.endsWith('onnx-node.js')?'export default null;':'export default {}; export const Readable=undefined; export const pipeline=undefined;',loader:'js'}));}};
+for(const d of ['vendor/local-ai','vendor/ocr','vendor/ocr/lang'])await mkdir(new URL(d,root),{recursive:true});
+for(const [entry,out]of [['local-ai-entry.js','local-ai/runtime.js'],['ocr-entry.js','ocr/runtime.js']])await build({entryPoints:[new URL(entry,import.meta.url).pathname.replace(/^\/(\w:)/,'$1')],outfile:new URL('vendor/'+out,root).pathname.replace(/^\/(\w:)/,'$1'),bundle:true,minify:true,format:'esm',platform:'browser',target:'es2022',plugins:entry==='local-ai-entry.js'?[browserOnly]:[]});
+for(const name of await readdir(new URL('node_modules/onnxruntime-web/dist/',root)))if(/^ort-wasm.*\.(mjs|wasm)$/.test(name))await copyFile(new URL('node_modules/onnxruntime-web/dist/'+name,root),new URL('vendor/local-ai/'+name,root));
+await copyFile(new URL('node_modules/tesseract.js/dist/worker.min.js',root),new URL('vendor/ocr/worker.min.js',root));
+for(const name of await readdir(new URL('node_modules/tesseract.js-core/',root)))if(/\.wasm(?:\.js)?$/.test(name))await copyFile(new URL('node_modules/tesseract.js-core/'+name,root),new URL('vendor/ocr/'+name,root));
+for(const lang of ['eng','kor']){const url='https://tessdata.projectnaptha.com/4.0.0/'+lang+'.traineddata.gz';const r=await fetch(url);if(!r.ok)throw Error(url+' '+r.status);await writeFile(new URL('vendor/ocr/lang/'+lang+'.traineddata.gz',root),Buffer.from(await r.arrayBuffer()));}
+const notices=[];for(const name of ['@huggingface/transformers','onnxruntime-web','onnxruntime-common','tesseract.js','tesseract.js-core']){for(const file of ['LICENSE','LICENSE.md','LICENSE.txt']){try{notices.push(name+'\n'+await readFile(new URL('node_modules/'+name+'/'+file,root),'utf8'));break;}catch{}}}await writeFile(new URL('vendor/LOCAL-TOOLS-LICENSES.txt',root),notices.join('\n\n----------------\n\n'));
+console.log('Local OCR and AI runtimes built.');

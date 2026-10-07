@@ -1,3 +1,4 @@
+import {databaseMarkdown} from './database-model.js';
 import {marked} from './vendor/marked.js';
 import DOMPurify from './vendor/purify.js';
 import {zipSync,strToU8} from './vendor/fflate.js';
@@ -9,7 +10,7 @@ export async function buildReadingBundle(notes,assets,{attachmentIds=[],metadata
  const chosen=assets.filter(a=>allowed.has(a.id)&&attachmentIds.includes(a.id)),files={},paths=new Map();let bytes=0;
  for(const [i,a] of chosen.entries()){bytes+=a.blob.size;if(bytes>50*1024*1024)throw Error('첨부는 한 묶음에 50MB까지 넣을 수 있습니다.');const path='attachments/'+(i+1)+'-'+safeName(a.name);paths.set(a.id,path);files[path]=new Uint8Array(await a.blob.arrayBuffer());}
  function body(note){
-  const md=note.body.replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g,(_,name,label)=>{const target=byTitle.get(name.trim().toLowerCase());return target?'['+(label||name)+'](#'+selected.get(target.id)+')':esc(label||name)+' (연결 기록 미포함)';});
+  const md=(note.body+databaseMarkdown(note.database)).replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g,(_,name,label)=>{const target=byTitle.get(name.trim().toLowerCase());return target?'['+(label||name)+'](#'+selected.get(target.id)+')':esc(label||name)+' (연결 기록 미포함)';});
   const container=document.createElement('template'),root=container.content;
   container.innerHTML=DOMPurify.sanitize(marked.parse(md,{breaks:true}),{FORBID_TAGS:['style','iframe','object','embed','form','button','select','textarea','audio','video','source','svg','math'],FORBID_ATTR:['style'],ALLOW_DATA_ATTR:false});
   root.querySelectorAll('img').forEach(img=>img.replaceWith(document.createTextNode(img.alt?'[이미지: '+img.alt+' · 본문 이미지 미포함]':'[본문 이미지 미포함]')));

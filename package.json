@@ -3,10 +3,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:preview": "node scripts/build-pptx-preview.mjs"
+    "build:preview": "node scripts/build-pptx-preview.mjs",
+    "build:tools": "node scripts/build-local-tools.mjs",
+    "test:tools": "node --test tests/workspace-models.test.mjs"
   },
   "dependencies": {
-    "@aiden0z/pptx-renderer": "1.3.0"
+    "@aiden0z/pptx-renderer": "1.3.0",
+    "@huggingface/transformers": "4.3.1",
+    "tesseract.js": "7.0.0"
   },
   "devDependencies": {
     "esbuild": "0.25.12"
