@@ -1,0 +1,14 @@
+{
+  "name": "pkos-library",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:preview": "node scripts/build-pptx-preview.mjs"
+  },
+  "dependencies": {
+    "@aiden0z/pptx-renderer": "1.3.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

@@ -47,6 +47,14 @@
 - **설명서 속 주소는 이 저장소의 주소입니다.** `manual/`의 실습 안내에 나오는 `https://legoschool.github.io/pkos-library/`는 내 주소로 바꿔 읽으면 됩니다. 실습 카드의 「원본 열기」는 이 저장소의 설명서를 엽니다.
 - 받아쓰기만은 예외입니다. 브라우저의 음성 인식을 쓰기 때문에, 받아쓰는 동안의 말소리는 크롬이나 엣지를 만든 회사의 음성 서비스에서 처리될 수 있습니다.
 
+## PDF·PPTX 페이지 미리보기
+
+기록 작성 중 「첨부」로 PDF·PPTX를 넣고 파일 옆 미리보기 단추를 누르면 쪽별 작은 그림과 선택한 한 장을 봅니다. 이전·다음, 쪽 번호 이동, 쪽 목록 접기를 지원하며 읽기 화면에서도 엽니다. 파일은 외부 변환 서버로 보내지 않습니다.
+
+옛 `.ppt`는 `.pptx` 또는 PDF로 저장한 사본이 필요합니다. PPTX의 글꼴·일부 도형은 원본과 다를 수 있으며 애니메이션은 재생하지 않습니다. 정확한 원본 모양이 필요하면 PDF 사본을 함께 첨부하세요.
+
+PPTX 미리보기 코드를 고친 경우 Node.js 20 이상에서 `npm ci` 후 `npm run build:preview`로 미리보기 HTML과 CSP 해시를 함께 갱신합니다. 앱 자체는 여전히 빌드 없이 정적 파일로 배포합니다.
+
 ## 들어 있는 것
 
 | 파일 | 하는 일 |
@@ -69,6 +77,6 @@
 
 **CC BY-NC 4.0**(저작자표시 · 비영리)을 따릅니다. 학교나 연수처럼 비영리로 쓰는 자리라면 사본을 만들어 고쳐 써도 됩니다. 이때 만든이와 이 저장소 주소를 밝히고 고친 것이 있으면 고쳤다고 적어 주세요. 원문은 [LICENSE](LICENSE), 쉬운 설명은 [LICENSE.ko.md](LICENSE.ko.md)에 있습니다.
 
-`vendor/`의 라이브러리는 각자의 이용 조건을 따릅니다. pdf.js와 DOMPurify는 Apache-2.0, marked와 fflate는 MIT이며 원문은 같은 폴더에 있습니다.
+`vendor/`의 라이브러리는 각자의 이용 조건을 따릅니다. pdf.js와 DOMPurify는 Apache-2.0, marked와 fflate는 MIT이며 원문은 같은 폴더에 있습니다. PPTX 렌더러(@aiden0z/pptx-renderer 1.3.0, Apache-2.0)와 포함된 라이브러리의 조건·출처는 `vendor/pptx-THIRD_PARTY_NOTICES.md`, `vendor/*-LICENSE`, `vendor/licenses/`에 있습니다.
 
 만든이 · 레고학교 미스터리 (legoschool)
