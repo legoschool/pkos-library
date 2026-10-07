@@ -1,0 +1,2 @@
+import {cp,mkdir} from 'node:fs/promises';
+const root=new URL('../',import.meta.url),out=new URL('vendor/katex/',root);await mkdir(out,{recursive:true});for(const file of ['katex.mjs','katex.min.css','fonts'])await cp(new URL('node_modules/katex/dist/'+file,root),new URL(file,out),{recursive:true});await cp(new URL('node_modules/katex/LICENSE',root),new URL('LICENSE',out));console.log('KaTeX assets built.');

@@ -1,3 +1,5 @@
+import {remapDatabase,databaseReferenceIds} from './database-engine.js';
+import {renameBlockReferences,blockReferenceIds} from './block-model.js';
 import {stable} from './sync-model.js';
 import {withHistory,undoHistory} from './note-history.js';
 export class ConflictError extends Error{constructor(){super('다른 창에서 이 기록을 수정했습니다. 현재 글을 사본으로 저장해 주세요.');}}
@@ -56,8 +58,11 @@ class Store{
    if(contentKeys.some(k=>JSON.stringify(old[k])!==JSON.stringify(n[k]))){updates.push({...n,favorite:old.favorite,revision:old.revision+1});if(old.folder!==n.folder)vacated.add(old.folder);}
    continue;}
   if(old&&(!equal(old,n)||n.attachments.some(id=>assetIds.get(id)!==id))){idMap.set(n.id,crypto.randomUUID());copies++;}else idMap.set(n.id,n.id);}
+ // Copies must point to other imported copies, including an otherwise unchanged referencing note.
+ const dependents=new Map();for(const n of data.notes){if(handled.has(n.id))continue;for(const target of new Set([...n.links,...databaseReferenceIds(n.database),...blockReferenceIds(n.body)])){if(!dependents.has(target))dependents.set(target,[]);dependents.get(target).push(n.id);}}
+ const queue=[...idMap].filter(([from,to])=>from!==to).map(([from])=>from);for(let i=0;i<queue.length;i++)for(const id of dependents.get(queue[i])||[]){if(map.has(id)&&idMap.get(id)===id&&!handled.has(id)){idMap.set(id,crypto.randomUUID());copies++;queue.push(id);}}
  const updatedIds=new Set(updates.map(n=>n.id));
- const notes=data.notes.filter(n=>!handled.has(n.id)&&(!map.has(n.id)||idMap.get(n.id)!==n.id)).map(n=>({...n,id:idMap.get(n.id),title:n.title+(map.has(n.id)?' (가져온 사본)':''),links:n.links.map(id=>idMap.get(id)||id),attachments:n.attachments.map(id=>assetIds.get(id)||id)}));
+ const notes=data.notes.filter(n=>!handled.has(n.id)&&(!map.has(n.id)||idMap.get(n.id)!==n.id)).map(n=>({...n,id:idMap.get(n.id),title:n.title+(map.has(n.id)?' (가져온 사본)':''),database:n.database?remapDatabase(n.database,idMap,assetIds):n.database,body:renameBlockReferences(n.body,idMap,assetIds),...(n.history?{history:n.history.map(h=>({...h,changes:Object.fromEntries(Object.entries(h.changes).map(([field,c])=>[field,field==='database'?{before:remapDatabase(c.before,idMap,assetIds),after:remapDatabase(c.after,idMap,assetIds)}:field==='body'?{before:renameBlockReferences(c.before,idMap,assetIds),after:renameBlockReferences(c.after,idMap,assetIds)}:c]))}))}:{}),links:n.links.map(id=>idMap.get(id)||id),attachments:n.attachments.map(id=>assetIds.get(id)||id)}));
  const used=new Set(notes.flatMap(n=>n.attachments));const assets=[...prepared.values()].filter(a=>used.has(a.id));
  // Drop notebooks that the updated cards left empty (and their now-empty parents); notebooks still holding any record stay.
  const after=[...existing.filter(n=>!updatedIds.has(n.id)),...updates.filter(n=>!retiredIds.has(n.id)),...notes].map(n=>n.folder),holds=f=>after.some(x=>x===f||x.startsWith(f+'/'));

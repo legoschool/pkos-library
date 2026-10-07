@@ -1,3 +1,4 @@
+import {exportBlockMarkdown} from './block-export.js';
 import {parseDatabase,databaseMarkdown} from './database-model.js';
 import {validateHistory} from './note-history.js';
 export const SCHEMA=1;
@@ -146,7 +147,7 @@ export function validateBackup(data){
 }
 export function markdownFile(note,notes,assets){
  const linkName=n=>safeName(n.title)+'--'+n.id;
- let body=(note.body+databaseMarkdown(note.database)).replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g,(all,name,label)=>{const n=notes.find(n=>!n.deleted&&normalize(n.title)===normalize(name));return n?'[['+linkName(n)+'|'+(label||name)+']]':all;});
+ let body=exportBlockMarkdown(note.body+databaseMarkdown(note.database,{notes,noteId:note.id}),{notes,assets,trail:[note.id]}).replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g,(all,name,label)=>{const n=notes.find(n=>!n.deleted&&normalize(n.title)===normalize(name));return n?'[['+linkName(n)+'|'+(label||name)+']]':all;});
  const fm=['---','title: '+JSON.stringify(note.title),'tags: '+JSON.stringify(note.tags),'folder: '+JSON.stringify(note.folder),'status: '+JSON.stringify(note.status),'created: '+JSON.stringify(note.created),'updated: '+JSON.stringify(note.updated),'review: '+JSON.stringify(note.reviewDate),'---','','# '+(note.title||'제목 없음'),''];
  const outgoing=note.links.map(id=>notes.find(n=>n.id===id&&!n.deleted)).filter(Boolean).map(n=>'[['+linkName(n)+'|'+n.title+']]');
  const files=note.attachments.map(id=>assets.find(a=>a.id===id)).filter(Boolean).map(a=>'['+a.name.replace(/[\[\]]/g,'')+'](attachments/'+encodeURIComponent(a.id+'-'+safeName(a.name))+')');
