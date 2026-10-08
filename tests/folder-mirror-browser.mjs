@@ -87,7 +87,7 @@ const replaceFile=(file,text)=>page.evaluate(async({file,text})=>{
  const handle=await d.getFileHandle(bits.at(-1)),writer=await handle.createWritable();await writer.write(text);await writer.close();
 },{file,text});
 const edit=async()=>{await close();if(!await page.locator('#edit-body').count())await action('edit');await page.locator('#edit-body').waitFor();};
-const save=async text=>{await edit();await page.locator('#edit-body').fill(text);await page.locator('.doc-actions [data-action="save"]').click();await page.locator('.prose').waitFor();};
+const save=async text=>{await edit();await page.locator('#edit-body').fill(text);await page.locator('.doc-actions [data-action="save"]').click();await page.waitForFunction(()=>document.querySelector('#save-state')?.textContent==='저장됨');assert.ok(await page.locator('#edit-body').isVisible(),'Save keeps the editor open');assert.equal(await page.locator('#edit-body').inputValue(),text);};
 const holdMirror=async()=>{
  await page.evaluate(()=>{window.mirrorLockReady=false;void navigator.locks.request('pkos-folder-mirror-pkem-real-personal-v1',async()=>{window.mirrorLockReady=true;await new Promise(resolve=>window.releaseMirrorTestLock=resolve);});});
  await page.waitForFunction(()=>window.mirrorLockReady);
@@ -133,10 +133,10 @@ try{
   await edit();await page.locator('#edit-body').fill('버튼을 누르지 않아도 자동 저장되는 글입니다.');await mirrored('버튼을 누르지 않아도 자동 저장되는 글입니다.');
   assert.equal(await page.locator('#edit-body').inputValue(),'버튼을 누르지 않아도 자동 저장되는 글입니다.');assert.ok(await page.locator('#edit-body').isVisible());
  });
- await check('typing during a clean Save waiting on the folder is committed before the editor closes',async()=>{
+ await check('typing during a clean Save waiting on the folder is committed and mirrored while the editor stays open',async()=>{
   await holdMirror();await page.locator('.doc-actions [data-action="save"]').click();await mirrorBusy();
   const latest='느린 폴더 저장을 기다리는 동안 새로 입력한 글도 남습니다.';await page.locator('#edit-body').fill(latest);await releaseMirror();
-  await page.locator('.prose').waitFor();await mirrored(latest);assert.equal((await state()).notes.find(n=>n.id===noteId).body,latest);assert.ok((await page.locator('.prose').innerText()).includes(latest));
+  await mirrored(latest);assert.equal((await state()).notes.find(n=>n.id===noteId).body,latest);assert.ok(await page.locator('#edit-body').isVisible());assert.equal(await page.locator('#edit-body').inputValue(),latest);
  });
  await check('navigation waits for edits typed during an earlier slow folder save instead of discarding the newer draft',async()=>{
   await edit();await holdMirror();await page.locator('#edit-body').fill('다른 메뉴를 열기 전에 저장할 첫 번째 글');await page.locator('.sidebar [data-view="favorites"]').click();await mirrorBusy();
@@ -171,7 +171,7 @@ try{
  await check('automatic folder saving can be switched off and resumed without deleting files',async()=>{
   await command('toggle').click();await ready();assert.equal((await state()).config.enabled,false);const previous=await state();
   await save('폴더 저장을 껐을 때 브라우저에만 저장한 글입니다.');
-  await page.waitForFunction(()=>document.querySelector('.prose')?.textContent.includes('폴더 저장을 껐을 때 브라우저에만 저장한 글입니다.'));
+  await page.waitForFunction(async()=>{const {openStore}=await import('./store.js');return (await(await openStore(false)).all('notes')).some(n=>n.body==='폴더 저장을 껐을 때 브라우저에만 저장한 글입니다.');});
   assert.deepEqual((await state()).files,previous.files);await open();
  });
  await check('manual folder Save protects an in-progress write from page unload even when automatic saving is off',async()=>{

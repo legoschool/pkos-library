@@ -45,7 +45,7 @@ try{
  await check('page opinions autosave separately and appear beside image links in local Markdown',async()=>{
   await page.locator('[data-action="page-edit"]').first().click();
   await page.locator('[data-page-comment]').first().fill('첫 페이지에 남긴 내 의견');await page.locator('[data-page-comment]').nth(1).fill('두 번째 페이지 질문');
-  await page.locator('.doc-actions [data-action="save"]').click();await page.locator('#markdown').waitFor();
+  await page.locator('.doc-actions [data-action="save"]').click();assert.ok(await page.locator('#edit-body').isVisible(),'Save keeps editing page opinions');assert.equal(await page.locator('[data-page-comment]').first().inputValue(),'첫 페이지에 남긴 내 의견');await page.keyboard.press('Control+e');await page.locator('#markdown').waitFor();
   const s=await waitState(s=>s.files.some(f=>f.text?.includes('두 번째 페이지 질문')));
   const md=s.files.find(f=>f.text?.includes('두 번째 페이지 질문')).text;assert.match(md,/!\[1페이지\]/);assert.match(md,/첫 페이지에 남긴 내 의견/);
   assert.deepEqual(s.notes[0].documentPages.map(p=>p.comment),['첫 페이지에 남긴 내 의견','두 번째 페이지 질문']);
