@@ -12,7 +12,7 @@ export function editableMarkdown(node){
 const tokenOf=b=>marked.lexer(b.raw).find(t=>t.type!=='space')||{type:'paragraph',text:''};
 function richKind(b){if(readSpecial(b.raw))return '';const t=tokenOf(b);return ['paragraph','heading','blockquote','list'].includes(t?.type)&&!b.raw.includes('<')&&!b.raw.includes('![')?t.type:'';}
 export function mountBlocks(textarea,api={}){
- if(!textarea||textarea.dataset.blocksMounted)return;textarea.dataset.blocksMounted='1';const depth=api.depth||0,editorId=crypto.randomUUID(),toolbar=textarea.closest('.editor-page')?.querySelector('.format-bar')||textarea.parentElement;
+ if(!textarea||textarea.dataset.blocksMounted)return;textarea.dataset.blocksMounted='1';const depth=api.depth||0,editorId=crypto.randomUUID(),toolbar=textarea.closest('.editor-page')?.querySelector('.format-bar')||api.toolbar||textarea.parentElement;
  let blocks=splitBlocks(textarea.value),active=false,rawMode=new Set(),selected=new Set(),history=[],future=[],focused='',typingCheckpoint='',publishing=false,dragIds=[],range=null;
  const root=document.createElement('section');root.className='block-editor';root.hidden=true;root.dataset.editorId=editorId;
  const toggle=document.createElement('button');toggle.type='button';toggle.textContent='블록으로 편집';toggle.className='format';textarea.before(root);toolbar.append(toggle);

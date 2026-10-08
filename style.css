@@ -337,3 +337,65 @@ button.cs-kind:hover{border-color:var(--accent);border-left-width:4px}
 
 /* Page previews while reading or writing. */
 dialog.document-preview-dialog{width:min(1120px,calc(100vw - 24px));max-height:94dvh}dialog.document-preview-dialog .dialog-body{padding:18px 22px}.editing-files>div{flex-wrap:wrap}.editing-files>div>span{min-width:110px;overflow-wrap:anywhere}.editing-files .quiet{flex-shrink:0}@media(max-width:700px){dialog.document-preview-dialog .dialog-body{padding:12px}}
+
+/* 메뉴와 기록 목록은 독립적으로 접고, 상단에서 다시 펼친다. */
+.panel-controls{display:flex;align-items:center;gap:4px;flex:none}
+.panel-toggle{gap:6px;padding:7px 9px;min-height:36px;font-size:12px;white-space:nowrap;color:var(--muted)}
+.panel-toggle svg{width:17px;height:17px}
+.panel-toggle[aria-expanded="false"]{background:#f0edf7;color:var(--accent)}
+.panel-toggle[hidden],.record-list[hidden]{display:none!important}
+.topbar .breadcrumbs{flex:1}
+@media(min-width:1101px){.shell.sidebar-collapsed>.sidebar{display:none}}
+@media(min-width:701px){.workspace.gallery.list-collapsed .document{display:block}}
+@media(max-width:700px){.panel-toggle{width:44px;min-height:44px;padding:7px}.panel-toggle span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}}
+
+/* 쓰는 동안 제목·속성·편집 메뉴는 위에 남기고 여백을 줄인다. */
+.editor-header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.editor-header .document-toolbar{position:static;min-height:46px;padding:6px 24px;backdrop-filter:none;background:var(--bg)}
+.page.editor-heading,.page.editor-page{width:min(100%,1040px)}
+.page.editor-heading{padding:4px 32px 0}
+.page.editor-page{padding:0 32px 32px}
+.editor-heading .title-input{font-size:26px;line-height:1.35;padding:4px 0 8px}
+.editor-heading .properties{margin:6px 0;max-height:30vh;overflow:auto}
+.editor-heading .properties summary{padding:3px 0;font-size:12px}
+.editor-heading .property-grid{gap:8px;margin-top:6px;padding:10px}
+.editor-heading .property-grid label{gap:4px}
+.editor-heading .format-bar{margin:6px 0 0;padding:5px 0;border-bottom:0;gap:1px}
+.editor-heading .format{padding:5px 7px;font-size:12px}
+.editor-page #edit-body{padding:10px 0;min-height:60vh;scroll-margin-top:220px}
+@media(max-width:700px){
+ .editor-header .document-toolbar{min-height:44px;padding:4px 12px}
+ .page.editor-heading{padding:4px 20px 0}
+ .page.editor-page{padding:0 20px 24px}
+ .editor-heading .title-input{font-size:22px;padding:3px 0 6px}
+ .editor-heading .format-bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding:3px 0}
+ .editor-heading .format{flex:none;white-space:nowrap;min-height:36px;padding:5px 8px}
+}
+
+/* File saving is visible separately from the browser's own saved state. */
+.mirror-entry{white-space:normal;text-align:left}
+.mirror-top-status{font-size:11px;gap:5px;padding:6px;color:var(--muted);white-space:nowrap}
+.mirror-top-status svg{width:15px;height:15px;flex:none}
+.save-status{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mirror-indicator{padding:0;text-align:left;font-size:10px;color:var(--muted);overflow-wrap:anywhere}
+[data-mirror-status].error,[data-mirror-message].error{color:#a13c31}
+.folder-mirror-dialog .hint{font-size:12px;line-height:1.7;color:var(--muted);margin:12px 0}
+.folder-mirror-dialog [data-mirror-folder]{overflow-wrap:anywhere;font-size:13px}
+.folder-mirror-dialog [data-mirror-message]{font-size:13px;line-height:1.7;margin:12px 0}
+.mirror-buttons{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.mirror-buttons button{min-height:40px;font-size:13px}
+@media(max-width:700px){.mirror-top-status{max-width:112px;white-space:normal;font-size:10px;min-height:40px}.mirror-top-status span{overflow-wrap:anywhere}.top-actions{gap:2px}.save-status{max-width:150px}.mirror-indicator{font-size:9px}}
+
+/* Keep a visible collapse control on each panel, with solid folder artwork. */
+.sidebar-header{display:flex;align-items:flex-start;gap:4px;position:sticky;top:0;z-index:5;background:var(--side)}
+.sidebar-header .brand{flex:1;min-width:0;padding:4px 0 16px}
+.sidebar-header .brand-mark{flex:none}
+.sidebar-header .brand>span:last-child{min-width:0}
+.sidebar-header .brand small{white-space:nowrap;font-size:10px}
+.panel-collapse{width:28px;min-height:30px;padding:5px;flex:none;color:#67615b;background:#eeeae5;border:1px solid #ded9d1}
+.panel-collapse:hover{color:#302d29;background:#e2dcd2}
+.sidebar-header .panel-collapse{margin-top:5px}
+.list-heading .panel-collapse{margin-left:4px}
+.folder-icon{flex:none;filter:drop-shadow(0 1px 0 #a67b241c)}
+.mirror-top-status{border:1px solid #e3d8bc;border-radius:6px;background:#fffaf0;color:#6e5b35}
+@media(max-width:700px){.list-collapse{display:none}.sidebar-header .panel-collapse{width:36px;min-height:36px}}
