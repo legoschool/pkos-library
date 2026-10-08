@@ -1,10 +1,11 @@
+import {uiIcon} from './ui-icons.js';
 const KEY='pkos-guide-v1',FOLDER_KEY='pkos-folder-guide-v1';
 let initialized=false;
 export function setupGuide({demo=false,folderMirror=null}={}) {
  if(initialized)return; initialized=true;
  const connection=()=>folderMirror?.connection?.()||{supported:false,connected:false,enabled:false};
  const guide=document.createElement('dialog');guide.className='pkos-guide';guide.setAttribute('aria-labelledby','guide-title');guide.setAttribute('aria-describedby','guide-description');
- guide.innerHTML='<div class="guide-spot" aria-hidden="true"></div><section class="guide-card"><div class="guide-top"><span class="guide-count"></span><button type="button" data-guide="close" aria-label="사용 안내 닫기">닫기 ×</button></div><img class="guide-emblem" src="icon.svg" alt="펼친 책 속에 지식이 연결된 PKOS 상징" width="64" height="64"><h2 id="guide-title"></h2><p id="guide-description"></p><p class="hint" data-guide-folder-result role="status" aria-live="polite" hidden></p><button type="button" class="primary wide" data-guide="connect" hidden>저장할 로컬 폴더 선택</button><div class="guide-progress" aria-hidden="true"></div><a class="guide-manual" href="manual/" target="_blank" rel="noopener" hidden>화면 사진이 든 사용 설명서와 실습 열기</a><footer><button type="button" data-guide="prev">이전</button><button type="button" class="primary" data-guide="next">둘러보기</button></footer></section>';
+ guide.innerHTML='<div class="guide-spot" aria-hidden="true"></div><section class="guide-card"><div class="guide-top"><span class="guide-count"></span><button type="button" data-guide="close" aria-label="사용 안내 닫기">닫기 ×</button></div>'+uiIcon('brand').replace('class="','class="guide-emblem ')+'<h2 id="guide-title"></h2><p id="guide-description"></p><p class="hint" data-guide-folder-result role="status" aria-live="polite" hidden></p><button type="button" class="primary wide" data-guide="connect" hidden>저장할 로컬 폴더 선택</button><div class="guide-progress" aria-hidden="true"></div><a class="guide-manual" href="manual/" target="_blank" rel="noopener" hidden>화면 사진이 든 사용 설명서와 실습 열기</a><footer><button type="button" data-guide="prev">이전</button><button type="button" class="primary" data-guide="next">둘러보기</button></footer></section>';
  document.body.append(guide);
  const folderStep={folder:true,target:'.topbar [data-action="folder-mirror"]',title:'저장할 폴더를 한 번 연결하세요',text:'글과 녹음·첨부를 PC 폴더에도 자동으로 저장합니다. 내 드라이브 안의 폴더도 고를 수 있고, 구글 드라이브가 온라인 동기화를 맡습니다. 다음에 열 때도 이 폴더를 기억합니다.'};
  const baseSteps=[

@@ -59,8 +59,21 @@ try{
   await page.locator('#record-panel .list-collapse').click();await panels(true,false);
   await list().click();await panels(true,true);
   const folder=page.locator('.folder-list .folder-icon').first();assert.ok(await folder.isVisible());
-  assert.equal(await folder.locator('path').nth(1).getAttribute('fill'),'#ffcf62');
-  assert.notEqual(await folder.locator('path').nth(1).evaluate(el=>getComputedStyle(el).fill),'none');
+  const artwork=await folder.evaluate(svg=>{
+   const view=svg.viewBox.baseVal,bounds=svg.getBBox(),style=getComputedStyle(svg);
+   const surfaces=[...svg.querySelectorAll('path')].map(path=>{
+    const computed=getComputedStyle(path),rgb=computed.fill.match(/[\d.]+/g)?.map(Number),box=path.getBBox();
+    if(!rgb||rgb.length<3)return null;
+    const [r,g,b]=rgb.map(n=>n/255),max=Math.max(r,g,b),min=Math.min(r,g,b),delta=max-min,light=(max+min)/2;
+    let hue=0;if(delta)hue=(max===r?(g-b)/delta+(g<b?6:0):max===g?(b-r)/delta+2:(r-g)/delta+4)*60;
+    const saturation=delta?delta/(1-Math.abs(2*light-1)):0;
+    return {hue,saturation,opacity:Number(computed.opacity)*Number(computed.fillOpacity)*(rgb[3]??1),area:box.width*box.height};
+   }).filter(Boolean);
+   return {width:bounds.width/view.width,height:bounds.height/view.height,opacity:Number(style.opacity),surfaces};
+  });
+  assert.ok(artwork.width>=.7&&artwork.height>=.55,'folder silhouette fills the icon with a visible tab and body');
+  assert.ok(artwork.opacity>=.9,'folder artwork remains opaque');
+  assert.ok(artwork.surfaces.filter(s=>s.area>0&&s.opacity>=.9&&s.hue>=25&&s.hue<=65&&s.saturation>=.35).length>=2,'folder has multiple opaque yellow surfaces');
   await screenshot('visible-collapse-yellow-folders');
  });
  await check('panel preferences persist across reload without changing selected record',async()=>{
