@@ -11,7 +11,7 @@ const out=fileURLToPath(new URL('../test-results/panel-collapse-20261008/',impor
 await mkdir(out,{recursive:true});
 const browser=await launchBrowser();
 const context=await browser.newContext({viewport:{width:1440,height:1000},serviceWorkers:'block'});
-await context.addInitScript(()=>localStorage.setItem('pkos-guide-v1','done'));
+await context.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});
 await stubGoogle(context);
 const page=await context.newPage(),errors=[],consoleErrors=[],results=[];
 page.on('pageerror',e=>errors.push(e.message));

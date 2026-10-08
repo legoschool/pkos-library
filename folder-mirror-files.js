@@ -14,6 +14,14 @@ const validPart=name=>typeof name==='string'&&name.length>0&&name.length<=220&&!
 const validPath=(path,kind)=>typeof path==='string'&&(kind==='asset'?path.startsWith('attachments/')&&validPart(path.slice(12)):validPart(path)&&path.endsWith('.md'));
 const pathKey=path=>path.normalize('NFC').toLocaleLowerCase('en-US');
 const encodePath=path=>path.split('/').map(part=>encodeURIComponent(part).replace(/[!'()*]/g,char=>'%'+char.charCodeAt(0).toString(16).toUpperCase())).join('/');
+const validId=value=>typeof value==='string'&&value.length>0&&value.length<=256;
+const validPage=page=>page&&validId(page.id)&&validId(page.assetId)&&validId(page.sourceAssetId)&&page.assetId!==page.sourceAssetId&&Number.isSafeInteger(page.number)&&page.number>0&&typeof page.deleted==='boolean';
+const validPageOwner=owner=>owner&&validId(owner.noteId)&&validId(owner.id)&&validId(owner.sourceAssetId)&&Number.isSafeInteger(owner.number)&&owner.number>0;
+const pageOwnerKey=owner=>JSON.stringify([owner.noteId,owner.id,owner.sourceAssetId,owner.number]);
+const clonePageOwners=owners=>Array.isArray(owners)?[...new Map(owners.filter(validPageOwner).map(owner=>{
+ const copy={noteId:owner.noteId,id:owner.id,sourceAssetId:owner.sourceAssetId,number:owner.number};return [pageOwnerKey(copy),copy];
+})).values()]:[];
+const pngBytes=bytes=>bytes.length>=8&&[137,80,78,71,13,10,26,10].every((value,index)=>bytes[index]===value);
 
 async function hash(bytes){
  const digest=await crypto.subtle.digest('SHA-256',bytes);
@@ -32,7 +40,12 @@ function cloneManifest(source){
  if(source?.version!==MIRROR_MANIFEST_VERSION)return output;
  for(const [collection,kind] of [['notes','note'],['assets','asset']]){
   for(const [id,entry] of Object.entries(source[collection]||{})){
-   if(entry&&validPath(entry.path,kind)&&hashPattern.test(entry.hash))output[collection][id]={path:entry.path,hash:entry.hash,...(kind==='note'?{title:String(entry.title??'')}:{name:String(entry.name??'')})};
+   if(entry&&validPath(entry.path,kind)&&hashPattern.test(entry.hash)){
+    output[collection][id]={path:entry.path,hash:entry.hash,...(kind==='note'?{title:String(entry.title??'')}:{name:String(entry.name??'')})};
+    if(kind==='asset'&&/\.png$/i.test(entry.path)){
+     const owners=clonePageOwners(entry.documentPages);if(owners.length)output[collection][id].documentPages=owners;
+    }
+   }
   }
  }
  return output;
@@ -57,12 +70,13 @@ const basename=path=>path.slice(path.lastIndexOf('/')+1);
 /**
  * Write readable copies into an already selected, dedicated local directory.
  * The caller serializes runs and persists result.manifest (also error.partialResult).
- * Renamed records, trash, removed attachments and external edits are never deleted.
- * onProgress receives {kind,id,path,done,total,written,skipped,conflicts}.
+ * Renamed records, trash, ordinary removed attachments and external edits are preserved.
+ * Only explicit converted-page tombstones can remove an unchanged owned PNG, after
+ * Markdown commits. onProgress kind is asset, note, or page-delete and includes removed.
  */
 export async function syncFolderMirror({handle,notes=[],assets=[],manifest,onProgress}={}){
  if(!handle?.getFileHandle||!handle?.getDirectoryHandle)throw Error('저장할 로컬 폴더를 다시 연결해 주세요.');
- const result={manifest:cloneManifest(manifest),written:0,conflicts:0,skipped:0};
+ const result={manifest:cloneManifest(manifest),written:0,conflicts:0,skipped:0,removed:0};
  const reservations=new Set(),notePaths=new Map(),assetPaths=new Map();
  const live=notes.filter(note=>!note.deleted),noteIds=new Set(),assetMap=new Map();
  let done=0,total=0;
@@ -79,6 +93,24 @@ export async function syncFolderMirror({handle,notes=[],assets=[],manifest,onPro
   // Validate all attachment sources before creating any Markdown that refers to them.
   for(const id of used)if(!assetMap.get(id)?.blob?.arrayBuffer)throw Error('첨부 파일 원본을 찾을 수 없습니다. 기록을 다시 열고 저장해 주세요.');
   total=live.length+used.length;
+  const pageOwners=new Map(),pageTombstones=new Map();
+  const referenced=new Set(notes.flatMap(note=>note.attachments||[]));
+  for(const note of notes){
+   for(const page of Array.isArray(note.documentPages)?note.documentPages:[]){
+    if(!validPage(page))continue;
+    // Never delete an original document or a page restored in another note, even
+    // if a malformed/restoring record temporarily lacks its attachment reference.
+    referenced.add(page.sourceAssetId);
+    if(!page.deleted)referenced.add(page.assetId);
+    if(note.deleted)continue;
+    const owner={noteId:note.id,id:page.id,sourceAssetId:page.sourceAssetId,number:page.number};
+    if(page.deleted){
+     const owners=pageTombstones.get(page.assetId)||[];owners.push(owner);pageTombstones.set(page.assetId,owners);
+    }else if((note.attachments||[]).includes(page.assetId)&&assetMap.has(page.sourceAssetId)&&assetMap.get(page.assetId)?.type==='image/png'&&/\.png$/i.test(assetMap.get(page.assetId)?.name||'')){
+     const owners=pageOwners.get(page.assetId)||[];owners.push(owner);pageOwners.set(page.assetId,owners);
+    }
+   }
+  }
 
   async function plan(kind,id,preferred,label){
    const collection=kind==='note'?'notes':'assets',previous=own(result.manifest[collection],id);
@@ -134,9 +166,14 @@ export async function syncFolderMirror({handle,notes=[],assets=[],manifest,onPro
     if(verified!==nextHash)throw Error('로컬 파일 저장을 확인하지 못했습니다. 다시 저장해 주세요.');
     result.written++;
    }
-   result.manifest[planned.kind==='note'?'notes':'assets'][planned.id]={path:planned.path,hash:nextHash,...(planned.kind==='note'?{title:planned.label}:{name:planned.label})};
+   const entry={path:planned.path,hash:nextHash,...(planned.kind==='note'?{title:planned.label}:{name:planned.label})};
+   if(planned.kind==='asset'&&/\.png$/i.test(planned.path)&&assetMap.get(planned.id)?.type==='image/png'&&pngBytes(bytes)){
+    const owners=clonePageOwners([...(own(result.manifest.assets,planned.id)?.documentPages||[]),...(pageOwners.get(planned.id)||[])]);
+    if(owners.length)entry.documentPages=owners;
+   }
+   result.manifest[planned.kind==='note'?'notes':'assets'][planned.id]=entry;
    done++;
-   await onProgress?.({kind:planned.kind,id:planned.id,path:planned.path,done,total,written:result.written,skipped:result.skipped,conflicts:result.conflicts});
+   await onProgress?.({kind:planned.kind,id:planned.id,path:planned.path,done,total,written:result.written,skipped:result.skipped,conflicts:result.conflicts,removed:result.removed});
   }
 
   // Original attachment bytes must exist before publishing links to them.
@@ -146,6 +183,30 @@ export async function syncFolderMirror({handle,notes=[],assets=[],manifest,onPro
     .replace(/\[\[([^\]|]+)(\|[^\]]*)?\]\]/g,(all,name,label='')=>notePaths.has(name)?'[['+notePaths.get(name)+label+']]':all);
    for(const id of note.attachments||[]){const replacement=assetPaths.get(id);if(replacement)markdown=markdown.split(replacement.from).join(replacement.to);}
    await commit(planned,encoder.encode(markdown));
+  }
+  // Missing attachments/trash are not deletion requests. Require both a durable
+  // explicit tombstone and the live-page ownership recorded on a previous export.
+  const protectedPaths=new Set([...referenced].map(id=>own(result.manifest.assets,id)?.path).filter(Boolean).map(pathKey));
+  for(const [id,tombstones] of pageTombstones){
+   const entry=own(result.manifest.assets,id);
+   if(!entry||referenced.has(id)||protectedPaths.has(pathKey(entry.path))||!validPath(entry.path,'asset')||!/\.png$/i.test(entry.path))continue;
+   const expected=new Set(tombstones.map(pageOwnerKey));
+   if(!entry.documentPages?.some(owner=>expected.has(pageOwnerKey(owner))))continue;
+   let directory,current;
+   try{directory=await directoryFor(handle,entry.path);current=await fileState(directory,basename(entry.path));}
+   catch(error){if(!isMissing(error))throw error;}
+   if(current&&(current.directory||current.hash!==entry.hash)){
+    // Release ownership once: subsequent retries and restores must keep this
+    // externally edited file, rather than repeatedly attempting to remove it.
+    result.conflicts++;delete result.manifest.assets[id];continue;
+   }
+   if(current){
+    try{await directory.removeEntry(basename(entry.path),{recursive:false});result.removed++;}
+    catch(error){if(!isMissing(error))throw error;}
+   }
+   delete result.manifest.assets[id];
+   total++;done++;
+   await onProgress?.({kind:'page-delete',id,path:entry.path,done,total,written:result.written,skipped:result.skipped,conflicts:result.conflicts,removed:result.removed});
   }
   return result;
  }catch(error){

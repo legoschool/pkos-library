@@ -1,6 +1,7 @@
 import {exportBlockMarkdown} from './block-export.js';
 import {parseDatabase,databaseMarkdown} from './database-model.js';
 import {validateHistory} from './note-history.js';
+import {pagesOf,pageAssetIds,pageMarkdown,validateDocumentPages} from './document-pages-model.js';
 export const SCHEMA=1;
 export const statuses=['수집','정리 중','활용','보관'];
 export const uid=()=>crypto.randomUUID();
@@ -10,7 +11,7 @@ export const tagsOf=s=>[...new Set(String(s).split(/[,#\n]/).map(s=>s.trim()).fi
 export function makeNote(data={}){const now=new Date().toISOString();return {id:uid(),title:'',body:'',folder:'수집함',tags:[],status:'수집',favorite:false,reviewDate:'',created:now,updated:now,revision:0,deleted:false,attachments:[],links:[],...data};}
 export const excerpt=s=>String(s||'').replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/[#>*`_~\[\]]/g,'').replace(/\s+/g,' ').trim();
 const databaseSearchCache=new WeakMap();
-function searchableBody(n){if(!n.database)return n.body;let text=databaseSearchCache.get(n);if(text===undefined){text=n.body+databaseMarkdown(n.database);databaseSearchCache.set(n,text);}return text;}
+function searchableBody(n){const pageText=pagesOf(n).filter(p=>!p.deleted).map(p=>p.comment).join('\n');if(!n.database)return n.body+'\n'+pageText;let text=databaseSearchCache.get(n);if(text===undefined){text=n.body+databaseMarkdown(n.database)+'\n'+pageText;databaseSearchCache.set(n,text);}return text;}
 export function filterNotes(notes,{view='all',folder='',tag='',q='',fields=['title','body','folder','tags'],status='',sort='updated'}={}){
  const terms=normalize(q).split(/\s+/).filter(Boolean),today=new Date().toLocaleDateString('en-CA');
  return notes.filter(n=>view==='trash'?n.deleted:!n.deleted).filter(n=>!folder||n.folder===folder||n.folder.startsWith(folder+'/')).filter(n=>!tag||n.tags.includes(tag)).filter(n=>!status||n.status===status).filter(n=>view!=='favorites'||n.favorite).filter(n=>view!=='inbox'||n.status==='수집').filter(n=>view!=='review'||!!n.reviewDate&&n.reviewDate<=today).filter(n=>{const hay=normalize(fields.map(f=>f==='body'?searchableBody(n):Array.isArray(n[f])?n[f].join(' '):n[f]).join(' '));return terms.every(t=>hay.includes(t));}).sort((a,b)=>sort==='title'?a.title.localeCompare(b.title,'ko'):sort==='created'?b.created.localeCompare(a.created):b.updated.localeCompare(a.updated));
@@ -142,7 +143,7 @@ export function validateBackup(data){
  const ids=new Set();for(const n of data.notes){if(typeof n.id!=='string'||!n.id||ids.has(n.id)||typeof n.title!=='string'||typeof n.body!=='string'||n.body.length>2000000||typeof n.folder!=='string'||!Array.isArray(n.tags)||!n.tags.every(t=>typeof t==='string')||!Array.isArray(n.links)||!n.links.every(t=>typeof t==='string')||!Array.isArray(n.attachments)||!n.attachments.every(t=>typeof t==='string')||!statuses.includes(n.status)||!Number.isInteger(n.revision)||typeof n.updated!=='string'||!Number.isFinite(Date.parse(n.updated))||typeof n.created!=='string'||!Number.isFinite(Date.parse(n.created)))throw Error('기록 형식이 손상되었습니다.');ids.add(n.id);}
  const assets=new Set();for(const a of data.assets){if(typeof a.id!=='string'||assets.has(a.id)||typeof a.name!=='string'||typeof a.type!=='string'||typeof a.data!=='string'||!/^[A-Za-z0-9+/]*={0,2}$/.test(a.data))throw Error('첨부 형식이 손상되었습니다.');assets.add(a.id);}
  if(data.notes.some(n=>n.attachments.some(id=>!assets.has(id))))throw Error('백업에서 첨부 파일이 누락되었습니다.');
- for(const n of data.notes){validateHistory(n);if(n.database!==undefined){if(typeof n.database!=='string'||n.database.length>5000000)throw Error('데이터베이스가 너무 크거나 손상되었습니다.');if(n.database)parseDatabase(n.database);}}
+ for(const n of data.notes){validateHistory(n);validateDocumentPages(n,data.assets);if(n.database!==undefined){if(typeof n.database!=='string'||n.database.length>5000000)throw Error('데이터베이스가 너무 크거나 손상되었습니다.');if(n.database)parseDatabase(n.database);}}
  if(!data.folders.every(f=>typeof f==='string'&&f.trim()))throw Error('노트북 형식이 손상되었습니다.');return data;
 }
 export function markdownFile(note,notes,assets){
@@ -150,6 +151,8 @@ export function markdownFile(note,notes,assets){
  let body=exportBlockMarkdown(note.body+databaseMarkdown(note.database,{notes,noteId:note.id}),{notes,assets,trail:[note.id]}).replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g,(all,name,label)=>{const n=notes.find(n=>!n.deleted&&normalize(n.title)===normalize(name));return n?'[['+linkName(n)+'|'+(label||name)+']]':all;});
  const fm=['---','title: '+JSON.stringify(note.title),'tags: '+JSON.stringify(note.tags),'folder: '+JSON.stringify(note.folder),'status: '+JSON.stringify(note.status),'created: '+JSON.stringify(note.created),'updated: '+JSON.stringify(note.updated),'review: '+JSON.stringify(note.reviewDate),'---','','# '+(note.title||'제목 없음'),''];
  const outgoing=note.links.map(id=>notes.find(n=>n.id===id&&!n.deleted)).filter(Boolean).map(n=>'[['+linkName(n)+'|'+n.title+']]');
- const files=note.attachments.map(id=>assets.find(a=>a.id===id)).filter(Boolean).map(a=>'['+a.name.replace(/[\[\]]/g,'')+'](attachments/'+encodeURIComponent(a.id+'-'+safeName(a.name))+')');
+ const pageIds=pageAssetIds(note);
+ body+=pageMarkdown(note,assets,a=>'attachments/'+encodeURIComponent(a.id+'-'+safeName(a.name)));
+ const files=note.attachments.filter(id=>!pageIds.has(id)).map(id=>assets.find(a=>a.id===id)).filter(Boolean).map(a=>'['+a.name.replace(/[\[\]]/g,'')+'](attachments/'+encodeURIComponent(a.id+'-'+safeName(a.name))+')');
  return [...fm,body,...(outgoing.length?['','## 연결된 기록',...outgoing]:[]),...(files.length?['','## 첨부 파일',...files]:[])].join('\n');
 }

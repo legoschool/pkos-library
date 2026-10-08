@@ -8,7 +8,7 @@ let context;
 try{
  context=await browser.newContext({viewport:{width:1440,height:960},acceptDownloads:true});
  await context.addInitScript(()=>{
-  localStorage.setItem('pkos-guide-v1','done');window.testStreams=[];window.testSpeechStarts=0;
+  localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');window.testStreams=[];window.testSpeechStarts=0;
   navigator.mediaDevices.getUserMedia=async options=>{
    if(window.denyDevice)throw new DOMException('denied','NotAllowedError');
    let stream;

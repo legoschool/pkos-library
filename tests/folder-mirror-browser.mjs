@@ -8,13 +8,13 @@ import path from 'node:path';
 import {launchBrowser,stubGoogle} from './browser-runtime.mjs';
 
 const BASE=process.argv[2]||'http://127.0.0.1:8898/';
-const out=fileURLToPath(new URL('../test-results/folder-mirror-20261008/',import.meta.url));
+const out=process.env.PKOS_MIRROR_TEST_OUT?path.resolve(process.env.PKOS_MIRROR_TEST_OUT):fileURLToPath(new URL('../test-results/folder-mirror-20261008/',import.meta.url));
 await mkdir(out,{recursive:true});
 const browser=await launchBrowser(),results=[],errors=[],consoleErrors=[];
 const context=await browser.newContext({viewport:{width:1440,height:1000},serviceWorkers:'block'});
 const dir='pkos-folder-mirror-test-'+crypto.randomUUID();
 await context.addInitScript(({dir})=>{
- localStorage.setItem('pkos-guide-v1','done');
+ localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');
  window.mirrorWriteCalls=0;window.mirrorRequestCalls=0;window.mirrorPickerCalls=0;
  window.showDirectoryPicker=async options=>{
   window.mirrorPickerCalls++;window.mirrorPickerMode=options.mode;
@@ -206,7 +206,7 @@ try{
   for(const name of ['choose','now','toggle'])await command(name).click({trial:true});await screenshot('mobile-connected');
  });
  await check('unsupported browsers offer a clear manual export fallback and disable folder selection',async()=>{
-  const other=await browser.newContext({viewport:{width:1100,height:800},serviceWorkers:'block'});await other.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');window.showDirectoryPicker=undefined;});await stubGoogle(other);
+  const other=await browser.newContext({viewport:{width:1100,height:800},serviceWorkers:'block'});await other.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');window.showDirectoryPicker=undefined;});await stubGoogle(other);
   const q=await other.newPage();observe(q);await q.goto(BASE);await q.locator('.welcome').waitFor();await open(q);assert.equal(await command('choose',q).isDisabled(),true);assert.match(await modal(q).innerText(),/이 브라우저|지원하지/);assert.match(await modal(q).innerText(),/내보내기|묶음|Markdown/);await q.screenshot({path:path.join(out,'unsupported-browser.png')});await other.close();
  });
  await check('no uncaught JavaScript exceptions occur throughout saving and recovery',async()=>assert.deepEqual(errors,[]));

@@ -4,6 +4,7 @@ import {marked} from './vendor/marked.js';
 import DOMPurify from './vendor/purify.js';
 import {zipSync,strToU8} from './vendor/fflate.js';
 import {esc,safeName} from './core.js';
+import {pagesOf,pageAssetIds} from './document-pages-model.js';
 export async function buildReadingBundle(notes,assets,{attachmentIds=[],metadata=false,title='나의지식서재 · 함께 읽기'}={}){
  if(!notes.length||notes.length>50)throw Error('기록은 1개부터 50개까지 고르세요.');
  if(notes.reduce((n,r)=>n+r.body.length,0)>2000000)throw Error('한 묶음의 본문은 200만 글자까지입니다.');
@@ -24,10 +25,15 @@ export async function buildReadingBundle(notes,assets,{attachmentIds=[],metadata
    a.target='_blank';a.rel='noopener noreferrer';
   });
   root.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
-  return container.innerHTML;
+  const pages=pagesOf(note).filter(p=>!p.deleted).map(page=>{
+   const path=paths.get(page.assetId),source=assets.find(a=>a.id===page.sourceAssetId),url=path?.split('/').map(encodeURIComponent).join('/');
+   return '<section><h2>'+esc(source?.name||'문서')+' · '+page.number+'페이지</h2>'+(url?'<img src="'+url+'" alt="'+page.number+'페이지" loading="lazy">':'<p>페이지 이미지 미포함</p>')+(page.comment?'<h3>내 의견</h3><p style="white-space:pre-wrap">'+esc(page.comment)+'</p>':'')+'</section>';
+  }).join('');
+  return container.innerHTML+pages;
  }
  const articles=notes.map(n=>{
-  const attachments=chosen.filter(a=>n.attachments.includes(a.id)).map(a=>{const path=paths.get(a.id),url=path.split('/').map(encodeURIComponent).join('/');const preview=/\.(png|jpe?g|gif|webp)$/i.test(a.name)?'<img loading="lazy" src="'+url+'" alt="'+esc(a.name)+'">':/\.(mp3|wav|ogg|m4a)$/i.test(a.name)?'<audio controls preload="none" src="'+url+'"></audio>':/\.(mp4|webm)$/i.test(a.name)?'<video controls preload="none" src="'+url+'"></video>':'';return '<figure>'+preview+'<figcaption><a href="'+url+'" download="'+esc(a.name)+'">'+esc(a.name)+' 다운로드</a></figcaption></figure>';}).join('');
+  const pageIds=pageAssetIds(n);
+  const attachments=chosen.filter(a=>n.attachments.includes(a.id)&&!pageIds.has(a.id)).map(a=>{const path=paths.get(a.id),url=path.split('/').map(encodeURIComponent).join('/');const preview=/\.(png|jpe?g|gif|webp)$/i.test(a.name)?'<img loading="lazy" src="'+url+'" alt="'+esc(a.name)+'">':/\.(mp3|wav|ogg|m4a)$/i.test(a.name)?'<audio controls preload="none" src="'+url+'"></audio>':/\.(mp4|webm)$/i.test(a.name)?'<video controls preload="none" src="'+url+'"></video>':'';return '<figure>'+preview+'<figcaption><a href="'+url+'" download="'+esc(a.name)+'">'+esc(a.name)+' 다운로드</a></figcaption></figure>';}).join('');
   const related=n.links.filter(id=>selected.has(id)).map(id=>{const target=notes.find(n=>n.id===id);return '<a href="#'+selected.get(id)+'">'+esc(target.title||'제목 없음')+'</a>';});
   return '<article id="'+selected.get(n.id)+'"><h1>'+esc(n.title||'제목 없음')+'</h1>'+(metadata?'<p class="meta">'+esc(n.folder)+(n.tags.length?' · '+n.tags.map(t=>'#'+esc(t)).join(' '):'')+'</p>':'')+'<div class="body">'+body(n)+'</div>'+(attachments?'<section class="attachments"><h2>함께 담은 첨부</h2>'+attachments+'</section>':'')+(related.length?'<aside><h2>함께 읽는 기록</h2>'+related.join(' · ')+'</aside>':'')+'<a class="top" href="#contents">목차로</a></article>';
  }).join('');
