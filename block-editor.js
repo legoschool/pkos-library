@@ -15,7 +15,7 @@ export function mountBlocks(textarea,api={}){
  if(!textarea||textarea.dataset.blocksMounted)return;textarea.dataset.blocksMounted='1';const depth=api.depth||0,editorId=crypto.randomUUID(),toolbar=textarea.closest('.editor-page')?.querySelector('.format-bar')||api.toolbar||textarea.parentElement;
  let blocks=splitBlocks(textarea.value),active=false,rawMode=new Set(),selected=new Set(),history=[],future=[],focused='',typingCheckpoint='',publishing=false,dragIds=[],range=null;
  const root=document.createElement('section');root.className='block-editor';root.hidden=true;root.dataset.editorId=editorId;
- const toggle=document.createElement('button');toggle.type='button';toggle.textContent='블록으로 편집';toggle.className='format';textarea.before(root);toolbar.append(toggle);
+ const toggle=document.createElement('button');toggle.type='button';toggle.textContent='블록으로 편집';toggle.className='format';textarea.before(root);(api.toggleHost||toolbar).append(toggle);
  const ensureBoundaries=()=>blocks.forEach((b,i)=>{if(i<blocks.length-1&&!b.raw.endsWith('\n\n'))b.raw=b.raw.trimEnd()+'\n\n';});
  const snapshot=()=>{history.push(structuredClone(blocks));if(history.length>50)history.shift();future=[];};
  const publish=()=>{publishing=true;textarea.value=joinBlocks(blocks);textarea.dispatchEvent(new Event('input',{bubbles:true}));publishing=false;};

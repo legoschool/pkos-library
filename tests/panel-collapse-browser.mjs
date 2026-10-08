@@ -19,6 +19,8 @@ page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text());});
 const nav=()=>page.locator('.topbar [data-action="nav"]');
 const list=()=>page.locator('.topbar [data-action="list-toggle"]');
 const action=name=>page.locator(`[data-action="${name}"]:visible`).first().click();
+const tools=async(open=true)=>{const toggle=page.locator('[data-action="editor-tools"]');if((await toggle.getAttribute('aria-expanded')==='true')!==open)await toggle.click();};
+const readSaved=async()=>{await action('save');assert.ok(await page.locator('#edit-body').isVisible(),'Save keeps the writing surface open');await page.keyboard.press('Control+e');await page.locator('#markdown.prose').waitFor();};
 const screenshot=name=>page.screenshot({path:path.join(out,name+'.png'),fullPage:false});
 const viewport=async(width,height)=>{await page.setViewportSize({width,height});await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));};
 const visible=selector=>page.locator(selector).evaluate(e=>{const r=e.getBoundingClientRect(),s=getComputedStyle(e);return s.display!=='none'&&s.visibility!=='hidden'&&r.width>0&&r.height>0&&r.right>0&&r.left<innerWidth;});
@@ -93,12 +95,13 @@ try{
   await action('edit');await page.locator('#edit-body').waitFor();
   const body='접기 시험용 가상 기록입니다.\n'.repeat(100);
   await page.locator('#edit-body').fill(body);
-  await page.locator('#edit-body').evaluate(e=>{window.panelEditor=e;window.panelTitle=document.querySelector('#edit-title');e.setSelectionRange(7,25);e.scrollTop=130;document.querySelector('.document').scrollTop=180;window.panelScroll={body:e.scrollTop,document:document.querySelector('.document').scrollTop};});
+  await page.waitForFunction(()=>{const e=document.querySelector('#edit-body');return e.scrollHeight<=e.clientHeight+1;});
+  await page.locator('#edit-body').evaluate(e=>{window.panelEditor=e;window.panelTitle=document.querySelector('#edit-title');e.setSelectionRange(7,25);document.querySelector('.document').scrollTop=180;window.panelScroll={body:e.scrollTop,document:document.querySelector('.document').scrollTop};});
   await list().click();await nav().click();await list().click();await nav().click();
   const result=await page.evaluate(()=>({sameBody:window.panelEditor===document.querySelector('#edit-body'),sameTitle:window.panelTitle===document.querySelector('#edit-title'),text:window.panelEditor.value,start:window.panelEditor.selectionStart,end:window.panelEditor.selectionEnd,bodyScroll:window.panelEditor.scrollTop,documentScroll:document.querySelector('.document').scrollTop,previous:window.panelScroll}));
   assert.equal(result.sameBody,true);assert.equal(result.sameTitle,true);assert.equal(result.text,body);
-  assert.equal(result.start,7);assert.equal(result.end,25);assert.equal(result.bodyScroll,result.previous.body);assert.equal(result.documentScroll,result.previous.document);
-  await action('save');await page.locator('.prose').waitFor();
+  assert.equal(result.start,7);assert.equal(result.end,25);assert.equal(result.bodyScroll,0,'the textarea has no separate scroll position');assert.equal(result.documentScroll,result.previous.document);
+  await readSaved();
  });
  await check('card view remains useful when its record panel is collapsed',async()=>{
   await action('layout');assert.equal(await visible('.document'),false);
@@ -141,8 +144,11 @@ try{
    await page.locator('#edit-body').fill(longBody);
    assert.ok(await page.locator('#edit-body').evaluate((e,h)=>e.getBoundingClientRect().height>=h*.5,height),'writing area remains tall');
    const formatButtons=page.locator('.editor-header .format-bar button');
-   assert.equal(await formatButtons.count(),12,'all formatting and block mode controls remain in the fixed header');
+   assert.equal(await formatButtons.count(),14,'all formatting, media, linked-record and block controls remain in the fixed header');
+   assert.equal(await page.locator('.editor-tools-main button').count(),6,'the common toolbar stays compact');
+   await tools(true);
    await page.getByRole('button',{name:'블록으로 편집',exact:true}).click();
+   await tools(false);
    assert.equal(await page.locator('.block-row').count(),45);
    await page.locator('.document').evaluate(e=>e.scrollTop=0);
    const before=await page.locator('.editor-header').evaluate(e=>({top:e.getBoundingClientRect().top,title:document.querySelector('#edit-title').getBoundingClientRect().top,toolbar:document.querySelector('.editor-header .format-bar').getBoundingClientRect().top,height:e.getBoundingClientRect().height}));
@@ -155,7 +161,9 @@ try{
    assert.ok(Math.abs(after.title-before.title)<=1,'title remains fixed');
    assert.ok(Math.abs(after.toolbar-before.toolbar)<=1,'format toolbar remains fixed');
    await screenshot(`editor-${label}-scrolled`);
+   await tools(true);
    for(let i=0;i<await formatButtons.count();i++)await formatButtons.nth(i).click({trial:true});
+   await tools(false);
    await noOverflow();
    await page.locator('.editor-header .properties summary').click();
    await page.locator('#edit-tags').fill('고정 메뉴 시험');
@@ -164,9 +172,9 @@ try{
    assert.ok(expanded.documentBottom-expanded.bottom>=150,'open properties leave usable writing space');
    await noOverflow();await screenshot(`editor-${label}-properties`);
    await page.locator('.editor-header .properties summary').click();
-   await page.getByRole('button',{name:'Markdown으로 편집',exact:true}).click();
+   await tools(true);await page.getByRole('button',{name:'Markdown으로 편집',exact:true}).click();await tools(false);
    assert.equal(await page.locator('#edit-body').inputValue(),longBody);
-   await action('save');await page.locator('#markdown.prose').waitFor();
+   await readSaved();
   });
  }
  await check('fictional demo stays isolated and no page or console errors occur',async()=>{

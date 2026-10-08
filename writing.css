@@ -1,0 +1,85 @@
+/* Shared reading and writing widths; the user's wide preference applies to both. */
+:root{--document-page-width:840px;--writing-muted:#69655f}
+:root[data-page-width=wide]{--document-page-width:1200px}
+.document>.page,.editor-header>.page.editor-heading,.document>.page.editor-page{width:min(100%,var(--document-page-width));max-width:var(--document-page-width);padding-inline:32px}
+.document>article.page{padding-top:18px}
+.document:has(#note-database)>.page{width:100%;max-width:none}
+.page-eyebrow{margin-bottom:10px}
+.page-title{font-size:30px;line-height:1.35;letter-spacing:-.7px;margin-bottom:12px}
+.page-tags{gap:5px;margin-bottom:16px}
+.page-tags .review-date{line-height:1.5}
+.prose>:first-child{margin-top:0}
+.reader-info{margin:0 0 16px;border-block:1px solid var(--line)}
+.reader-info>summary{padding:10px 0;font-size:13px;line-height:1.5;color:var(--writing-muted);cursor:pointer}
+.reader-info[open]>summary{color:var(--ink)}
+.reader-info>*:not(summary){margin-top:0}
+
+/* Focus keeps the record's own controls available, including the exit control. */
+.shell.writing-focus>.sidebar,.shell.writing-focus>.scrim,.shell.writing-focus .topbar,.shell.writing-focus .record-list{display:none!important}
+.shell.writing-focus .main-shell{width:100%;min-width:0}
+.shell.writing-focus .workspace{display:flex}
+.shell.writing-focus .document{display:block!important;width:100%;height:100%}
+.focus-toggle,.reader-layout-toggle{display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;font-size:12px;min-height:36px;padding:6px 9px}
+.focus-toggle[aria-pressed=true],.reader-layout-toggle[aria-pressed=true]{background:var(--soft);color:var(--accent-text)}
+.focus-toggle:hover,.reader-layout-toggle:hover{background:var(--soft-hover);color:var(--accent-text)}
+
+/* Only the document scrolls: JavaScript grows the textarea with its content. */
+.document:has(.editor-header){scroll-padding-top:var(--editor-header-height,180px)}
+.editor-header{overflow:visible}
+.editor-header .document-toolbar{gap:8px}
+.editor-heading .title-input{font-size:25px;line-height:1.35;padding:3px 0 6px}
+.editor-heading .properties{margin:4px 0}
+.editor-heading .properties summary{color:var(--writing-muted);font-size:12px;min-height:26px;padding:4px 0}
+.editor-heading .format-bar{display:block;overflow:visible;flex-wrap:wrap;margin:4px 0 0;padding:4px 0;border-bottom:0}
+.editor-tools-main,.editor-tools-extra{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0}
+.editor-tools-extra{padding-top:6px;margin-top:4px;border-top:1px solid var(--line)}
+.editor-tools-extra[hidden]{display:none!important}
+.editor-heading .format{min-height:34px;padding:6px 9px;font-size:13px;line-height:1.4;white-space:nowrap;justify-content:center}
+.editor-heading .tools-toggle{margin-left:auto;border:1px solid var(--line);color:var(--writing-muted)}
+.editor-heading .tools-toggle[aria-expanded=true]{background:var(--soft);border-color:var(--accent-border);color:var(--accent-text)}
+.editor-page #edit-body{display:block;overflow:hidden;resize:none;min-height:max(240px,calc(100dvh - var(--editor-header-height,180px) - 140px));padding:12px 0;scroll-margin-top:var(--editor-header-height,180px)}
+.editor-page .editor-footer{gap:12px;flex-wrap:wrap;line-height:1.6;margin-top:8px}
+.editor-page .editor-bottom{margin-top:20px;gap:8px}
+
+/* Metadata is secondary in hierarchy but remains readable on light surfaces. */
+.note-row>p{font-size:13px;color:#625f59}
+.note-eyebrow,.note-meta,.document-state,.page-eyebrow,.review-date,.editor-footer,.side-heading,.local-label,.storage-note,.mirror-indicator{font-size:12px;color:var(--writing-muted)}
+.filters summary,.tag small,.chip small,.nav-item small{font-size:12px;color:var(--writing-muted)}
+.status-pill{font-size:12px;color:#52613b;background:#f0f2eb}
+.editor-heading .property-grid label{color:var(--writing-muted)}
+
+@media(max-width:700px){
+ .document>.page,.editor-header>.page.editor-heading,.document>.page.editor-page{padding-inline:20px}
+ .document>article.page{padding-top:14px}
+ .page-title{font-size:25px;line-height:1.35;letter-spacing:-.5px;margin-bottom:10px}
+ .page-eyebrow{margin-bottom:8px}
+ .page-tags{gap:4px;margin-bottom:14px}
+ .page-tags .tag,.page-tags .chip{min-height:30px;padding:4px 8px;font-size:12px;line-height:1.4}
+ .page-tags .review-date{width:100%;margin-left:0}
+ .editor-header .document-toolbar{padding:4px 10px;gap:4px;flex-wrap:wrap}
+ .editor-header .doc-actions{gap:2px}
+ .editor-header .save-status{flex:1;max-width:none;min-width:42px}
+ .editor-heading .title-input{font-size:22px;padding:3px 0 5px}
+ .editor-heading .properties{max-height:min(22dvh,160px)}
+ .editor-heading .format-bar{overflow:visible;padding:4px 0}
+ .editor-tools-main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+ .editor-heading .format{min-height:40px;padding:6px;font-size:13px;white-space:normal;word-break:keep-all}
+ .editor-heading .tools-toggle{margin-left:0}
+ .editor-tools-extra{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+ .editor-tools-extra>.format{min-width:0;overflow-wrap:anywhere;word-break:keep-all}
+ .editor-tools-extra>.format>span{min-width:0;overflow-wrap:anywhere}
+ .editor-page #edit-body{font-size:var(--reading-size);line-height:1.85}
+ .focus-toggle,.reader-layout-toggle{min-height:40px}
+}
+
+@media(max-width:480px){
+ .doc-actions .focus-toggle{width:40px;min-width:40px;padding:8px;gap:0}
+ .focus-toggle>span{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+ .document-toolbar{gap:4px;flex-wrap:wrap}
+ .document-toolbar .save-status{flex:1;min-width:42px;max-width:none}
+ .doc-actions{gap:2px;flex-shrink:0}
+}
+
+@media print{
+ .document>.page{width:100%;max-width:none;padding:0}
+}

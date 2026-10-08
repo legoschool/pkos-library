@@ -29,7 +29,7 @@ try{
   assert.equal(await p.evaluate(()=>window.originalEditor===document.querySelector('#edit-body')),true);
   await close();assert.equal(await p.locator('#edit-body').inputValue(),'테마를 바꿔도 남아야 하는 의견');
   await p.screenshot({path:path.join(out,'green-editor-and-colored-icons.png')});
-  await p.locator('.doc-actions [data-action="save"]').click();await p.locator('#markdown').waitFor();
+  await p.locator('.doc-actions [data-action="save"]').click();assert.equal(await p.locator('#edit-body').inputValue(),'테마를 바꿔도 남아야 하는 의견');await p.keyboard.press('Control+e');await p.locator('#markdown').waitFor();
  });
  await check('theme and saved record persist after reload',async()=>{
   await p.reload();await p.locator('#markdown').waitFor();assert.equal(await color(),'#238354');assert.match(await p.locator('#markdown').innerText(),/남아야 하는 의견/);
