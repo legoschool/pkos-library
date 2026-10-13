@@ -8,7 +8,7 @@ const out=process.env.PKOS_LINKS_OFFLINE_OUT||'test-results/body-links-offline-2
 await fs.mkdir(out,{recursive:true});
 const browser=await launchBrowser(),context=await browser.newContext();
 await context.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});
-const page=await context.newPage(),errors=[],checks=[];
+const page=await context.newPage(),errors=[],checks=[];let cacheState;
 page.on('pageerror',e=>errors.push(e.message));
 page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 const action=name=>page.locator(`[data-action="${name}"]:visible`).first().click();
@@ -19,7 +19,15 @@ try{
  await page.locator('#edit-body').fill('오프라인에서도 주소를 보관합니다. '+first);
  await page.keyboard.press('Control+s');
  await page.waitForFunction(()=>document.querySelector('#save-state')?.textContent==='저장됨');
- await page.waitForFunction(async()=>navigator.serviceWorker.controller&&await caches.match(new URL('./body-links.js',location.href).href)&&await caches.match(new URL('./body-links-model.js',location.href).href));
+ cacheState=await page.evaluate(async()=>{
+  await navigator.serviceWorker.ready;
+  if(!navigator.serviceWorker.controller)await new Promise(resolve=>navigator.serviceWorker.addEventListener('controllerchange',resolve,{once:true}));
+  const worker=navigator.serviceWorker.controller;
+  if(worker.state!=='activated')await new Promise(resolve=>worker.addEventListener('statechange',function changed(){if(worker.state==='activated'){worker.removeEventListener('statechange',changed);resolve();}}));
+  const files=['./','./body-links.js','./body-links-model.js'];
+  return {controller:navigator.serviceWorker.controller.scriptURL,state:navigator.serviceWorker.controller.state,cached:await Promise.all(files.map(async file=>({file,present:!!await caches.match(new URL(file,location.href).href)})))};
+ });
+ assert.equal(cacheState.state,'activated');assert.ok(cacheState.cached.every(file=>file.present),'the document and link modules finished caching');
  checks.push('new link modules are cached and the initial URL is saved');
  await context.setOffline(true);await page.reload();
  await page.locator('#body-link-previews a.body-link-open').waitFor();
@@ -33,5 +41,5 @@ try{
  checks.push('offline edits save and regenerate both cards on the next reload');
  assert.deepEqual(errors,[]);await page.screenshot({path:path.join(out,'offline-link-cards.png')});
 }catch(error){await page.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});throw error;}
-finally{await fs.writeFile(path.join(out,'verification.json'),JSON.stringify({base,checks,errors},null,2));await browser.close();}
+finally{await fs.writeFile(path.join(out,'verification.json'),JSON.stringify({base,checks,errors,cacheState},null,2));await browser.close();}
 console.log(checks.length+' offline checks passed');
