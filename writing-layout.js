@@ -41,6 +41,7 @@ export function setupWritingLayout(){
  }
  const input=()=>schedule(true),resize=()=>schedule();
  textarea.addEventListener('input',input);
+ textarea.addEventListener('bodylinkschange',resize);
  window.addEventListener('resize',resize,{passive:true});
 
  const sizes=new ResizeObserver(entries=>{
@@ -63,6 +64,7 @@ export function setupWritingLayout(){
   if(frame)cancelAnimationFrame(frame);
   sizes.disconnect();attributes.disconnect();
   textarea.removeEventListener('input',input);
+  textarea.removeEventListener('bodylinkschange',resize);
   window.removeEventListener('resize',resize);
   document.fonts?.removeEventListener('loadingdone',resize);
  };
