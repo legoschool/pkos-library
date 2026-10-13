@@ -142,3 +142,46 @@
 @media print{
  .document>.page{width:100%;max-width:none;padding:0}
 }
+
+/* Sharing keeps the reviewed selection separate from publication and local ZIP export. */
+.reading-export-dialog>header{padding:0 0 12px;gap:8px;box-shadow:0 -24px 0 #fff}
+.reading-export-dialog>header h2{min-width:0}
+.reading-export-dialog>header button{flex:none}
+.reading-export-dialog .reading-audience{margin:12px 0;color:var(--ink)}
+.reading-export-dialog .reading-publish-panel,.reading-export-dialog .reading-zip-panel{border-top:1px solid var(--line);margin-top:22px;padding-top:18px;min-width:0}
+.reading-export-dialog h3{font-size:16px;line-height:1.45;margin:0 0 8px}
+.reading-export-dialog .reading-publish-panel>p,.reading-export-dialog .reading-zip-panel>p{margin:6px 0 12px;color:var(--muted)}
+.reading-export-dialog details>summary{cursor:pointer;line-height:1.6}
+.reading-export-dialog .reading-publish-setup{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.reading-export-dialog .reading-publish-setup label,.reading-export-dialog .reading-publish-result label{display:flex;flex-direction:column;gap:6px;font-size:13px;margin:10px 0}
+.reading-export-dialog [data-reading-configured]{color:var(--muted);font-size:12px}
+.reading-export-dialog input[data-reading-key],.reading-export-dialog input[data-reading-url]{width:100%;min-width:0;padding:10px;border:1px solid var(--accent-border);border-radius:8px;font:inherit}
+.reading-export-dialog input[data-reading-url]{font-size:13px;background:var(--soft)}
+.reading-export-dialog .reading-publish-target{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:12px 0}
+.reading-export-dialog .reading-publish-target p{flex:1;min-width:160px;margin:0;font-size:13px;overflow-wrap:anywhere}
+.reading-export-dialog .reading-publish-target button{font-size:12px}
+.reading-export-dialog .reading-publish-panel .reading-actions{margin-top:8px}
+.reading-export-dialog .reading-publish-result{margin-top:14px;padding:10px 14px;border:1px solid var(--accent-border);border-radius:8px;background:var(--accent-tint)}
+.reading-export-dialog .reading-publish-result .quiet{min-height:42px;border:1px solid var(--accent-border);border-radius:8px;text-decoration:none;font-size:13px}
+.reading-export-dialog .reading-share-manager{margin-top:20px}
+.reading-export-dialog .reading-share-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid var(--line);min-width:0}
+.reading-export-dialog .reading-share-row>div:first-child{flex:1;min-width:0}
+.reading-export-dialog .reading-share-row strong,.reading-export-dialog .reading-share-row a,.reading-export-dialog .reading-share-row small{display:block;overflow-wrap:anywhere}
+.reading-export-dialog .reading-share-row strong{font-size:14px;font-weight:600}
+.reading-export-dialog .reading-share-row a{font-size:12px;color:var(--accent-text);margin-top:3px}
+.reading-export-dialog .reading-share-row small{font-size:11px;color:var(--muted);margin-top:3px}
+.reading-export-dialog .reading-share-actions{display:flex;gap:6px;flex:none;flex-wrap:wrap}
+.reading-export-dialog .reading-share-actions button{font-size:12px;white-space:nowrap}
+.reading-export-dialog .reading-share-row.selected [data-reading=update-share]{background:var(--soft);color:var(--accent-text);border-color:var(--accent-border)}
+.reading-export-dialog [data-reading-status]:empty,.reading-export-dialog [data-reading-shares-status]:empty{display:none}
+.reading-export-dialog .error{color:#a13c31}
+.reading-export-dialog [hidden]{display:none!important}
+@media(max-width:500px){
+ .reading-export-dialog{padding:16px;max-height:94dvh}
+ .reading-export-dialog>header h2{font-size:18px}
+ .reading-export-dialog .reading-share-row{align-items:stretch;flex-direction:column;gap:8px}
+ .reading-export-dialog .reading-share-actions{justify-content:flex-start}
+ .reading-export-dialog .reading-publish-result{padding:10px}
+ .reading-export-dialog iframe{height:420px}
+ .reading-export-dialog .reading-publish-target p{flex-basis:100%}
+}

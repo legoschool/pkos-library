@@ -1,0 +1,8 @@
+.env*
+.vercel
+node_modules
+tests
+test-results
+checkpoints
+docs
+*.md
