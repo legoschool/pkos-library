@@ -46,12 +46,30 @@ try{
   await p.getByRole('button',{name:'Markdown으로 편집',exact:true}).click();await sameDraft();await singleScroll();
   await p.locator('[data-editor-tool="commands"]').click();assert.ok(await p.locator('#editor-command-menu').isVisible());await p.keyboard.press('Escape');await tools(false);
  });
- await check('record, dictation and more tools are visible without horizontal scrolling on mobile',async()=>{
+ await check('mobile tools stay on one scrollable row with a pinned toggle in regular and focus modes',async()=>{
   for(const width of [390,320]){
    await p.setViewportSize({width,height:844});await frames();await singleScroll();
-   for(const selector of ['[data-editor-tool="record"]','[data-editor-tool="dictate"]','[data-action="editor-tools"]']){const b=await p.locator(selector).boundingBox();assert.ok(b&&b.x>=0&&b.x+b.width<=width+1&&b.y+b.height<430&&b.height>=40,JSON.stringify(b));}
-   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
-   await tools(true);assert.ok(await p.getByRole('button',{name:'사진 촬영',exact:true}).isVisible());await tools(false);
+   for(const focused of [false,true]){
+    if(focused)await action('writing-focus');
+    const toggle=p.locator('[data-action="editor-tools"]'),pinned=await toggle.boundingBox();
+    assert.ok(pinned&&pinned.x>=0&&pinned.x+pinned.width<=width+1&&pinned.y+pinned.height<430&&pinned.height>=40,JSON.stringify(pinned));
+    const closedHeight=(await p.locator('.editor-header').boundingBox()).height;
+    await tools(true);
+    assert.ok(Math.abs((await p.locator('.editor-header').boundingBox()).height-closedHeight)<=1,'opening extra tools does not add another row');
+    const row=await p.locator('.editor-tools-scroll').evaluate(el=>{const r=el.getBoundingClientRect(),buttons=[...el.querySelectorAll('button')].map(b=>b.getBoundingClientRect());return {height:r.height,centers:buttons.map(b=>b.top+b.height/2),heights:buttons.map(b=>b.height),overflows:el.scrollWidth>el.clientWidth};});
+    assert.equal(row.centers.length,13,'every formatting, media, link and block control remains available');
+    assert.ok(row.height<=46&&Math.max(...row.centers)-Math.min(...row.centers)<=1,JSON.stringify(row));
+    assert.ok(row.heights.every(h=>h>=40)&&row.overflows,JSON.stringify(row));
+    for(const selector of ['[data-editor-tool="record"]','[data-editor-tool="dictate"]','[data-editor-tool="camera"]','#editor-extra-tools button:last-child']){
+     await p.locator(selector).click({trial:true});
+     const b=await p.locator(selector).boundingBox(),scroll=await p.locator('.editor-tools-scroll').boundingBox();
+     assert.ok(b&&b.x>=scroll.x-1&&b.x+b.width<=scroll.x+scroll.width+1&&b.height>=40,JSON.stringify({b,scroll}));
+     const current=await toggle.boundingBox();assert.ok(Math.abs(current.x-pinned.x)<=1&&Math.abs(current.y-pinned.y)<=1,'more-tools toggle stays pinned while scrolling');
+    }
+    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await tools(false);await sameDraft();await singleScroll();
+    if(focused)await action('writing-focus');
+   }
   }
   await p.screenshot({path:path.join(out,'mobile-editor.png')});await action('writing-focus');await p.screenshot({path:path.join(out,'mobile-focus.png')});await action('writing-focus');
  });

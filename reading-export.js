@@ -4,7 +4,7 @@ import {marked} from './vendor/marked.js';
 import DOMPurify from './vendor/purify.js';
 import {zipSync,strToU8} from './vendor/fflate.js';
 import {esc,safeName} from './core.js';
-import {pagesOf,pageAssetIds} from './document-pages-model.js';
+import {pagesOf,pageAssetIds,pageImageAssetId} from './document-pages-model.js';
 export async function buildReadingBundle(notes,assets,{attachmentIds=[],metadata=false,title='나의지식서재 · 함께 읽기'}={}){
  if(!notes.length||notes.length>50)throw Error('기록은 1개부터 50개까지 고르세요.');
  if(notes.reduce((n,r)=>n+r.body.length,0)>2000000)throw Error('한 묶음의 본문은 200만 글자까지입니다.');
@@ -26,7 +26,7 @@ export async function buildReadingBundle(notes,assets,{attachmentIds=[],metadata
   });
   root.querySelectorAll('[id]').forEach(el=>el.removeAttribute('id'));
   const pages=pagesOf(note).filter(p=>!p.deleted).map(page=>{
-   const path=paths.get(page.assetId),source=assets.find(a=>a.id===page.sourceAssetId),url=path?.split('/').map(encodeURIComponent).join('/');
+   const path=paths.get(pageImageAssetId(page))||paths.get(page.assetId),source=assets.find(a=>a.id===page.sourceAssetId),url=path?.split('/').map(encodeURIComponent).join('/');
    return '<section><h2>'+esc(source?.name||'문서')+' · '+page.number+'페이지</h2>'+(url?'<img src="'+url+'" alt="'+page.number+'페이지" loading="lazy">':'<p>페이지 이미지 미포함</p>')+(page.comment?'<h3>내 의견</h3><p style="white-space:pre-wrap">'+esc(page.comment)+'</p>':'')+'</section>';
   }).join('');
   return container.innerHTML+pages;

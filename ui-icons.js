@@ -2,6 +2,7 @@
 // icon-base / icon-glyph let primary buttons adapt to the selected accent.
 const tile=(color,glyph)=>'<rect class="icon-base" x="2" y="2" width="20" height="20" rx="5" fill="'+color+'"/><g class="icon-glyph" fill="#fff">'+glyph+'</g>';
 const definitions=Object.freeze({
+ tag:'<path class="icon-base" d="M3 3h8l10 10-8 8L3 11Z" fill="#7c3aed"/><circle class="icon-glyph" cx="7" cy="7" r="2" fill="#fff"/>',
  collapse:tile('#475569','<path d="m10.8 6.5-5.5 5.5 5.5 5.5 1.4-1.4L8.1 12l4.1-4.1zm6 0L11.3 12l5.5 5.5 1.4-1.4-4.1-4.1 4.1-4.1z"/>'),
  panel:tile('#2563eb','<path fill-rule="evenodd" d="M5 6h14v12H5V6Zm6 2v8h6V8h-6Z"/>'),
  chevron:'<path class="icon-glyph" d="m8 4 8 8-8 8-2-2 6-6-6-6z" fill="#64748b"/>',

@@ -25,17 +25,29 @@
 
 /* Only the document scrolls: JavaScript grows the textarea with its content. */
 .document:has(.editor-header){scroll-padding-top:var(--editor-header-height,180px)}
+.document{container-type:inline-size;container-name:record}
 .editor-header{overflow:visible}
-.editor-header .document-toolbar{gap:8px}
-.editor-heading .title-input{font-size:25px;line-height:1.35;padding:3px 0 6px}
-.editor-heading .properties{margin:4px 0}
-.editor-heading .properties summary{color:var(--writing-muted);font-size:12px;min-height:26px;padding:4px 0}
-.editor-heading .format-bar{display:block;overflow:visible;flex-wrap:wrap;margin:4px 0 0;padding:4px 0;border-bottom:0}
-.editor-tools-main,.editor-tools-extra{display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0}
-.editor-tools-extra{padding-top:6px;margin-top:4px;border-top:1px solid var(--line)}
+.editor-header .document-toolbar{width:min(100%,var(--document-page-width));max-width:var(--document-page-width);margin-inline:auto;min-height:48px;padding:5px 32px;gap:8px;flex-wrap:nowrap}
+.editor-title-field{display:flex;align-items:center;gap:8px;flex:1;min-width:0}
+.editor-header .title-input{width:100%;font-size:25px;line-height:1.35;padding:2px 0;border:0;border-radius:0;text-overflow:ellipsis;background:transparent}
+.editor-title-field .title-input{flex:1;min-width:0}
+.editor-header .editor-title-field>.save-status{flex:0 1 auto;max-width:30%;min-width:42px;gap:2px;align-items:flex-end}
+.editor-title-field>.save-status>*{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.editor-header .doc-actions{flex:none;margin-left:0;gap:4px}
+.editor-header .editor-section-toggle{padding:6px;gap:4px;font-size:11px;min-height:34px;white-space:nowrap}
+.editor-section-toggle[aria-expanded=true]{background:var(--soft);color:var(--accent-text)}
+.editor-header>.page.editor-heading{padding-top:0;padding-bottom:0}
+.editor-meta{display:flex;align-items:flex-start;gap:12px;min-width:0}
+#editor-meta[hidden],#editor-toolbar[hidden]{display:none!important}
+.editor-heading .properties{flex:1;min-width:0;margin:0;border-top:0}
+.editor-heading .properties summary{color:var(--writing-muted);font-size:12px;min-height:25px;padding:3px 0}
+.editor-heading .format-bar{display:flex;align-items:center;gap:6px;overflow:visible;flex-wrap:nowrap;margin:0;padding:0;border-bottom:0}
+.editor-tools-scroll{display:flex;align-items:center;gap:4px;min-width:0;flex:1;height:46px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-inline:contain;scrollbar-width:thin}
+.editor-tools-main,.editor-tools-extra{display:flex;align-items:center;flex-wrap:nowrap;gap:2px;flex:none;min-width:0}
+.editor-tools-extra{padding:0;margin:0;border:0}
 .editor-tools-extra[hidden]{display:none!important}
-.editor-heading .format{min-height:34px;padding:6px 9px;font-size:13px;line-height:1.4;white-space:nowrap;justify-content:center}
-.editor-heading .tools-toggle{margin-left:auto;border:1px solid var(--line);color:var(--writing-muted)}
+.editor-heading .format{flex:none;min-height:34px;padding:5px 7px;font-size:12px;line-height:1.4;white-space:nowrap;justify-content:center}
+.editor-heading .tools-toggle{flex:none;margin:0;border:1px solid var(--line);color:var(--writing-muted)}
 .editor-heading .tools-toggle[aria-expanded=true]{background:var(--soft);border-color:var(--accent-border);color:var(--accent-text)}
 .editor-page #edit-body{display:block;overflow:hidden;resize:none;min-height:max(240px,calc(100dvh - var(--editor-header-height,180px) - 140px));padding:12px 0;scroll-margin-top:var(--editor-header-height,180px)}
 .editor-page .editor-footer{gap:12px;flex-wrap:wrap;line-height:1.6;margin-top:8px}
@@ -56,20 +68,33 @@
  .page-tags{gap:4px;margin-bottom:14px}
  .page-tags .tag,.page-tags .chip{min-height:30px;padding:4px 8px;font-size:12px;line-height:1.4}
  .page-tags .review-date{width:100%;margin-left:0}
- .editor-header .document-toolbar{padding:4px 10px;gap:4px;flex-wrap:wrap}
+ .editor-header .document-toolbar{padding:4px 20px;gap:4px}
  .editor-header .doc-actions{gap:2px}
- .editor-header .save-status{flex:1;max-width:none;min-width:42px}
- .editor-heading .title-input{font-size:22px;padding:3px 0 5px}
+ .editor-header .title-input{font-size:22px;padding:2px 0}
  .editor-heading .properties{max-height:min(22dvh,160px)}
- .editor-heading .format-bar{overflow:visible;padding:4px 0}
- .editor-tools-main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
- .editor-heading .format{min-height:40px;padding:6px;font-size:13px;white-space:normal;word-break:keep-all}
+ .editor-heading .format-bar{overflow:visible;padding:0}
+ .editor-tools-main{display:flex;gap:2px}
+ .editor-heading .format{min-height:40px;padding:6px;font-size:13px;white-space:nowrap}
  .editor-heading .tools-toggle{margin-left:0}
- .editor-tools-extra{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+ .editor-tools-extra{display:flex;gap:2px}
  .editor-tools-extra>.format{min-width:0;overflow-wrap:anywhere;word-break:keep-all}
  .editor-tools-extra>.format>span{min-width:0;overflow-wrap:anywhere}
  .editor-page #edit-body{font-size:var(--reading-size);line-height:1.85}
  .focus-toggle,.reader-layout-toggle{min-height:40px}
+}
+
+@container record (max-width:600px){
+ .editor-header .document-toolbar{flex-wrap:wrap;padding-inline:20px;gap:3px}
+ .editor-title-field{order:-1;flex-basis:100%}
+ .editor-header .doc-actions{margin-left:auto}
+ .editor-header .editor-section-toggle{width:30px;min-width:30px;min-height:36px;padding:5px;gap:0}
+ .editor-header .editor-section-toggle>span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+ .editor-header .editor-title-field>.save-status{max-width:34%;min-width:42px}
+ .editor-header .focus-toggle{width:36px;min-width:36px;padding:7px;gap:0}
+ .editor-header .focus-toggle>span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+ .editor-meta{gap:6px;flex-wrap:wrap}
+ .editor-heading .tools-toggle{width:38px;min-width:38px;padding:6px;gap:0}
+ .editor-heading .tools-toggle>span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 }
 
 @media(max-width:480px){
@@ -78,6 +103,13 @@
  .document-toolbar{gap:4px;flex-wrap:wrap}
  .document-toolbar .save-status{flex:1;min-width:42px;max-width:none}
  .doc-actions{gap:2px;flex-shrink:0}
+}
+
+@container record (max-width:360px){
+ .editor-header .document-toolbar{padding-inline:12px}
+ .editor-header .doc-actions{gap:2px}
+ .editor-header .back-button{width:36px;min-width:36px;min-height:40px;padding:8px;gap:0}
+ .editor-header .back-button>span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 }
 
 @media print{

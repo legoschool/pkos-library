@@ -7,7 +7,7 @@ import path from 'node:path';
 import {launchBrowser, stubGoogle} from './browser-runtime.mjs';
 
 const BASE=process.argv[2]||'http://127.0.0.1:8898/';
-const out=fileURLToPath(new URL('../test-results/panel-collapse-20261008/',import.meta.url));
+const out=process.env.PKOS_PANEL_TEST_OUT||fileURLToPath(new URL('../test-results/panel-collapse-20261008/',import.meta.url));
 await mkdir(out,{recursive:true});
 const browser=await launchBrowser();
 const context=await browser.newContext({viewport:{width:1440,height:1000},serviceWorkers:'block'});
@@ -145,7 +145,8 @@ try{
    assert.ok(await page.locator('#edit-body').evaluate((e,h)=>e.getBoundingClientRect().height>=h*.5,height),'writing area remains tall');
    const formatButtons=page.locator('.editor-header .format-bar button');
    assert.equal(await formatButtons.count(),14,'all formatting, media, linked-record and block controls remain in the fixed header');
-   assert.equal(await page.locator('.editor-tools-main button').count(),6,'the common toolbar stays compact');
+   assert.equal(await page.locator('.editor-tools-main button').count(),5,'the common toolbar stays compact');
+   assert.equal(await page.locator('.format-bar > [data-action="editor-tools"]').count(),1,'the extra-tools toggle remains outside the scrolling controls');
    await tools(true);
    await page.getByRole('button',{name:'블록으로 편집',exact:true}).click();
    await tools(false);

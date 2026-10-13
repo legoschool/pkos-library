@@ -1,4 +1,5 @@
 import {markdownFile,safeName} from './core.js';
+import {pageImageAssetIds} from './document-pages-model.js';
 
 export const MIRROR_MANIFEST_VERSION=1;
 const encoder=new TextEncoder();
@@ -15,7 +16,7 @@ const validPath=(path,kind)=>typeof path==='string'&&(kind==='asset'?path.starts
 const pathKey=path=>path.normalize('NFC').toLocaleLowerCase('en-US');
 const encodePath=path=>path.split('/').map(part=>encodeURIComponent(part).replace(/[!'()*]/g,char=>'%'+char.charCodeAt(0).toString(16).toUpperCase())).join('/');
 const validId=value=>typeof value==='string'&&value.length>0&&value.length<=256;
-const validPage=page=>page&&validId(page.id)&&validId(page.assetId)&&validId(page.sourceAssetId)&&page.assetId!==page.sourceAssetId&&Number.isSafeInteger(page.number)&&page.number>0&&typeof page.deleted==='boolean';
+const validPage=page=>page&&validId(page.id)&&validId(page.assetId)&&validId(page.sourceAssetId)&&page.assetId!==page.sourceAssetId&&(page.annotatedAssetId===undefined||validId(page.annotatedAssetId)&&page.annotatedAssetId!==page.assetId&&page.annotatedAssetId!==page.sourceAssetId)&&Number.isSafeInteger(page.number)&&page.number>0&&typeof page.deleted==='boolean';
 const validPageOwner=owner=>owner&&validId(owner.noteId)&&validId(owner.id)&&validId(owner.sourceAssetId)&&Number.isSafeInteger(owner.number)&&owner.number>0;
 const pageOwnerKey=owner=>JSON.stringify([owner.noteId,owner.id,owner.sourceAssetId,owner.number]);
 const clonePageOwners=owners=>Array.isArray(owners)?[...new Map(owners.filter(validPageOwner).map(owner=>{
@@ -101,13 +102,15 @@ export async function syncFolderMirror({handle,notes=[],assets=[],manifest,onPro
     // Never delete an original document or a page restored in another note, even
     // if a malformed/restoring record temporarily lacks its attachment reference.
     referenced.add(page.sourceAssetId);
-    if(!page.deleted)referenced.add(page.assetId);
+    if(!page.deleted)for(const id of pageImageAssetIds(page))referenced.add(id);
     if(note.deleted)continue;
     const owner={noteId:note.id,id:page.id,sourceAssetId:page.sourceAssetId,number:page.number};
-    if(page.deleted){
-     const owners=pageTombstones.get(page.assetId)||[];owners.push(owner);pageTombstones.set(page.assetId,owners);
-    }else if((note.attachments||[]).includes(page.assetId)&&assetMap.has(page.sourceAssetId)&&assetMap.get(page.assetId)?.type==='image/png'&&/\.png$/i.test(assetMap.get(page.assetId)?.name||'')){
-     const owners=pageOwners.get(page.assetId)||[];owners.push(owner);pageOwners.set(page.assetId,owners);
+    for(const id of pageImageAssetIds(page)){
+     if(page.deleted){
+      const owners=pageTombstones.get(id)||[];owners.push(owner);pageTombstones.set(id,owners);
+     }else if((note.attachments||[]).includes(id)&&assetMap.has(page.sourceAssetId)&&assetMap.get(id)?.type==='image/png'&&/\.png$/i.test(assetMap.get(id)?.name||'')){
+      const owners=pageOwners.get(id)||[];owners.push(owner);pageOwners.set(id,owners);
+     }
     }
    }
   }

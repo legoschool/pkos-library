@@ -171,6 +171,34 @@ const pageFixture=()=>{
  return {page,image,source,n,assets:[source,image],deleted:{...n,attachments:['source'],documentPages:[{...page,deleted:true}]}};
 };
 
+test('annotated page mirrors both PNGs, links composite, and deletes/restores them together',async()=>{
+ const handle=new Directory(),f=pageFixture(),drawn=pngAsset('drawn');
+ const page={...f.page,annotatedAssetId:drawn.id,annotations:{version:1,width:1000,height:750,items:[]}};
+ const n={...f.n,attachments:[...f.n.attachments,drawn.id],documentPages:[page]},assets=[...f.assets,drawn];
+ const first=await syncFolderMirror({handle,notes:[n],assets});
+ for(const id of [f.image.id,drawn.id])assert.equal(first.manifest.assets[id].documentPages.length,1);
+ const markdown=await handle.text(first.manifest.notes.n.path);
+ assert.ok(markdown.includes(first.manifest.assets[drawn.id].path.split('/').map(encodeURIComponent).join('/')));
+ assert.ok(!markdown.includes(first.manifest.assets[f.image.id].path));
+ const deleted={...n,attachments:['source'],documentPages:[{...page,deleted:true}]};
+ const result=await syncFolderMirror({handle,notes:[deleted],assets,manifest:first.manifest});
+ assert.equal(result.removed,2);assert.ok(await handle.entry(first.manifest.assets.source.path));
+ const restored=await syncFolderMirror({handle,notes:[n],assets,manifest:result.manifest});
+ for(const image of [f.image,drawn])assert.deepEqual((await handle.entry(restored.manifest.assets[image.id].path)).data,new Uint8Array(await image.blob.arrayBuffer()));
+});
+
+test('another page protects a shared composite while the deleted page original is removed',async()=>{
+ const handle=new Directory(),f=pageFixture(),drawn=pngAsset('drawn');
+ const page={...f.page,annotatedAssetId:drawn.id,annotations:{version:1,width:1000,height:750,items:[]}};
+ const n={...f.n,attachments:[...f.n.attachments,drawn.id],documentPages:[page]},assets=[...f.assets,drawn];
+ const first=await syncFolderMirror({handle,notes:[n],assets});
+ const deleted={...n,attachments:['source'],documentPages:[{...page,deleted:true}]};
+ const other=note('other','공유',{attachments:[drawn.id],deleted:true});
+ const result=await syncFolderMirror({handle,notes:[deleted,other],assets,manifest:first.manifest});
+ assert.equal(result.removed,1);assert.ok(await handle.entry(first.manifest.assets[drawn.id].path));
+ assert.equal(await handle.entry(first.manifest.assets[f.image.id].path),undefined);
+});
+
 test('explicit converted-page deletion removes only its verified PNG after Markdown succeeds',async()=>{
  const handle=new Directory(),f=pageFixture(),first=await syncFolderMirror({handle,notes:[f.n],assets:f.assets});
  assert.deepEqual(first.manifest.assets[f.image.id].documentPages,[{noteId:'n',id:f.page.id,sourceAssetId:'source',number:1}]);

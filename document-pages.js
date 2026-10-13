@@ -1,5 +1,5 @@
 import {esc} from './core.js';
-import {pagesOf,documentPageFile} from './document-pages-model.js';
+import {pagesOf,documentPageFile,pageImageAssetId} from './document-pages-model.js';
 export {documentPageFile};
 export function pageConvertButton(asset){
  return documentPageFile(asset)?'<button type="button" class="quiet small" data-action="page-convert" data-asset="'+esc(asset.id)+'">페이지 이미지 만들기</button>':'';
@@ -9,9 +9,9 @@ export function documentPagesHTML(note,assets,assetURL,editing=false){
  if(!pages.length)return '';
  const controls=!note.deleted;
  return '<section class="document-pages" aria-label="페이지 이미지와 메모"><header><h2>페이지별 기록</h2><span>'+live.length+'페이지</span></header>'+live.map(page=>{
-  const asset=assets.find(a=>a.id===page.assetId),source=assets.find(a=>a.id===page.sourceAssetId),url=asset?assetURL(asset):'';
+  const asset=assets.find(a=>a.id===pageImageAssetId(page))||assets.find(a=>a.id===page.assetId),source=assets.find(a=>a.id===page.sourceAssetId),url=asset?assetURL(asset):'';
   const title=(source?.name||'문서')+' · '+page.number+'페이지';
-  return '<section class="document-page-card" data-document-page="'+esc(page.id)+'"><header><h3>'+esc(title)+'</h3>'+(controls?'<button type="button" class="quiet small" data-action="page-delete" data-page-id="'+esc(page.id)+'" aria-label="'+page.number+'페이지 삭제">페이지 삭제</button>':'')+'</header>'+(url?'<a class="page-image-download" href="'+url+'" download="'+esc(asset.name)+'" title="페이지 이미지 저장"><img src="'+url+'" alt="'+esc(title)+'" loading="lazy"></a>':'<p class="error">페이지 이미지를 찾지 못했습니다.</p>')+(editing?'<label class="page-comment-label">내 의견<textarea data-page-comment="'+esc(page.id)+'" aria-label="'+page.number+'페이지 의견" maxlength="100000" placeholder="이 페이지에 대한 생각이나 필기를 적으세요.">'+esc(page.comment)+'</textarea></label>':'<div class="page-comment"><strong>내 의견</strong><p>'+esc(page.comment||'아직 적은 의견이 없습니다.')+'</p>'+(controls?'<button type="button" class="quiet small" data-action="page-edit" data-page-id="'+esc(page.id)+'">의견 적기</button>':'')+'</div>')+'</section>';
+  return '<section class="document-page-card" data-document-page="'+esc(page.id)+'"><header><h3>'+esc(title)+'</h3>'+(controls?'<div class="page-image-actions"><button type="button" class="quiet small" data-action="page-draw" data-page-id="'+esc(page.id)+'" aria-label="'+page.number+'페이지 그리기">✎ 그리기</button><button type="button" class="quiet small" data-action="page-delete" data-page-id="'+esc(page.id)+'" aria-label="'+page.number+'페이지 삭제">페이지 삭제</button></div>':'')+'</header>'+(url?'<a class="page-image-download" href="'+url+'" download="'+esc(asset.name)+'" title="페이지 이미지 저장"><img src="'+url+'" alt="'+esc(title)+'" loading="lazy"></a>':'<p class="error">페이지 이미지를 찾지 못했습니다.</p>')+(editing?'<label class="page-comment-label">내 의견<textarea data-page-comment="'+esc(page.id)+'" aria-label="'+page.number+'페이지 의견" maxlength="100000" placeholder="이 페이지에 대한 생각이나 필기를 적으세요.">'+esc(page.comment)+'</textarea></label>':'<div class="page-comment"><strong>내 의견</strong><p>'+esc(page.comment||'아직 적은 의견이 없습니다.')+'</p>'+(controls?'<button type="button" class="quiet small" data-action="page-edit" data-page-id="'+esc(page.id)+'">의견 적기</button>':'')+'</div>')+'</section>';
  }).join('')+(deleted.length&&controls?'<details class="deleted-pages"><summary>삭제한 페이지 '+deleted.length+'개</summary>'+deleted.map(page=>'<div><span>'+esc(assets.find(a=>a.id===page.sourceAssetId)?.name||'문서')+' · '+page.number+'페이지</span><button type="button" class="quiet small" data-action="page-restore" data-page-id="'+esc(page.id)+'">복원</button></div>').join('')+'</details>':'')+'</section>';
 }
 let active=false;

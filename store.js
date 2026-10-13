@@ -12,9 +12,13 @@ class Store{
  get(name,id){return new Promise((resolve,reject)=>{const r=this.db.transaction(name).objectStore(name).get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});}
  put(name,value){return this.batch({[name]:[value]});}
  batch(groups){return new Promise((resolve,reject)=>{const tx=this.db.transaction(Object.keys(groups),'readwrite');for(const [name,rows] of Object.entries(groups))for(const row of rows)tx.objectStore(name).put(row);tx.oncomplete=()=>{if(groups.notes||groups.assets||groups.meta?.some(m=>m.id==='folders'))this.changed();resolve();};tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('저장을 완료하지 못했습니다.'));});}
- saveCaptured(note,baseRevision,asset,recoveryId){return new Promise((resolve,reject)=>{
+ saveCaptured(note,baseRevision,asset,recoveryId,retiredAssetIds=[]){return new Promise((resolve,reject)=>{
   let conflict=false;const tx=this.db.transaction(['notes','assets','meta'],'readwrite'),store=tx.objectStore('notes'),r=store.get(note.id);
-  r.onsuccess=()=>{if((r.result?.revision||0)!==baseRevision){conflict=true;tx.abort();return;}note=withHistory(r.result,{...note,revision:baseRevision+1,updated:new Date().toISOString()});store.put(note);for(const item of (Array.isArray(asset)?asset:asset?[asset]:[]))tx.objectStore('assets').put(item);if(recoveryId)tx.objectStore('meta').delete(recoveryId);};
+  r.onsuccess=()=>{if((r.result?.revision||0)!==baseRevision){conflict=true;tx.abort();return;}note=withHistory(r.result,{...note,revision:baseRevision+1,updated:new Date().toISOString()});store.put(note);for(const item of (Array.isArray(asset)?asset:asset?[asset]:[]))tx.objectStore('assets').put(item);if(recoveryId)tx.objectStore('meta').delete(recoveryId);
+   // Composite images are immutable. Retire a replaced image only after checking
+   // every owner in the same transaction, including deleted pages and note copies.
+   if(retiredAssetIds.length){const owners=store.getAll();owners.onsuccess=()=>{const used=new Set(owners.result.flatMap(documentAssetReferences));for(const id of retiredAssetIds)if(!used.has(id))tx.objectStore('assets').delete(id);};}
+  };
   tx.oncomplete=()=>{this.changed();resolve(note);};tx.onabort=()=>reject(conflict?new ConflictError():tx.error||Error('첨부 저장 실패'));tx.onerror=()=>reject(tx.error);
  });}
  clear(){return new Promise((resolve,reject)=>{const tx=this.db.transaction(['notes','assets','meta'],'readwrite');for(const name of ['notes','assets','meta'])tx.objectStore(name).clear();tx.oncomplete=()=>{this.changed();resolve();};tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('비우기 실패'));});}
