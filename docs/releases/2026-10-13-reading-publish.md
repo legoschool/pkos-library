@@ -1,6 +1,6 @@
 # 2026-10-13 선택 기록의 웹 주소 공유
 
-상태: 구현 완료 · Vercel 배포 및 운영 검증 완료. 배포 `dpl_6v7faor7m9DovLcL82BttUCjCzpB`는 READY이며 [운영 Vercel](https://pkos-library.vercel.app/)에서 실제 게시·읽기·갱신·삭제를 확인했습니다. GitHub 커밋·push와 GitHub Pages 반영은 별도로 진행 중이며 이 기록에서 완료로 표시하지 않습니다.
+상태: 구현 완료 · GitHub Pages·Vercel 배포 및 운영 검증 완료. 런타임 커밋은 `ff7668faf5e67ee426e351334d73f2d8c8b06beb`이며 [GitHub Pages 배포 38397242966](https://github.com/legoschool/pkos-library/actions/runs/38397242966)은 성공했습니다. 최종 Vercel 배포 `dpl_ZzSJZjuQrUpHH83ezU1PWVDZsZhf`는 READY입니다. [GitHub Pages](https://legoschool.github.io/pkos-library/)와 [Vercel](https://pkos-library.vercel.app/) 두 운영 주소에서 실제 게시·읽기·갱신·삭제를 확인했습니다.
 
 ## 사용 흐름
 
@@ -38,10 +38,12 @@ Vercel Hobby의 별도 서비스 할당량이 적용됩니다. 앱의 500MB 검�
 | 읽기 화면 | 5 |
 | 문서·목업 | 5 |
 | 실제 Vercel 운영 게시 | 7 |
+| 실제 GitHub Pages 운영 게시 | 7 |
+| 기존 오프라인 회귀 · 운영 주소별 | 3씩 |
 
-운영 검사에서는 미인증 게시 요청 거부, 실제 비공개 Blob 업로드와 6MB 첨부, 로그인하지 않은 별도 독자의 이미지·첨부 다운로드와 비공개 범위 제외, 모바일 읽기, 같은 주소 갱신 직후 새 내용 조회, 게시 삭제 후 같은 주소 차단, 원문 다운로드 차단과 `no-store`를 확인했습니다. 근거는 `test-results/reading-publish-live-vercel-20261013/verification.json`입니다. 가상 자료와 격리 브라우저를 사용했고 시험 게시물은 모두 삭제했습니다. 실제 사용자 자료와 게시 키는 공개하지 않았습니다.
+운영 검사에서는 미인증 게시 요청 거부, 실제 비공개 Blob 업로드와 6MB 첨부, 로그인하지 않은 별도 독자의 이미지·첨부 다운로드와 비공개 범위 제외, 모바일 읽기, 같은 주소 갱신 직후 새 내용 조회, 게시 삭제 후 같은 주소 차단, 원문 다운로드 차단과 `no-store`를 확인했습니다. 근거는 `test-results/reading-publish-live-vercel-20261013/verification.json`과 `test-results/reading-publish-live-github-20261013/verification.json`입니다. Vercel에서는 작은 파일의 단일 업로드를 이용한 갱신도 추가 확인했습니다. 가상 자료와 격리 브라우저를 사용했고 시험 게시물은 모두 삭제했습니다. 실제 사용자 자료와 게시 키는 공개하지 않았습니다.
 
-GitHub 공개 커밋과 Pages의 반영 결과는 해당 작업을 마친 뒤 추가합니다. Vercel 운영 시험 결과와 구분합니다.
+두 운영 주소의 런타임 10개 파일 SHA-256이 배포한 코드와 일치했습니다. 기존 오프라인 회귀도 각 주소에서 3/3을 통과했습니다. 이 문서·검증용 자료의 후속 커밋은 위 런타임 배포와 구분합니다.
 
 ## 문서 확인
 

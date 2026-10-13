@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';import fs from 'node:fs/promises';import os from 'node:os';import path from 'node:path';import {pathToFileURL} from 'node:url';import {unzipSync} from '../vendor/fflate.js';import {launchBrowser} from './browser-runtime.mjs';
 const base=process.env.PKOS_TEST_URL||'http://127.0.0.1:8793/';
-const b=await launchBrowser(),checks=[],errors=[],picture=await fs.readFile('00_가상자료/첨부시험/sample.png');
+const b=await launchBrowser(),checks=[],errors=[],picture=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNwS1nwHwAEiAJKsIGz7AAAAABJRU5ErkJggg==','base64');
 try{
  const context=await b.newContext({viewport:{width:1380,height:1000},acceptDownloads:true,serviceWorkers:'block'});await context.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});
  const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));const remote=[];p.on('request',r=>{if(r.url().includes('example.invalid'))remote.push(r.url());});
