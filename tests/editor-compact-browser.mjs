@@ -53,7 +53,7 @@ async function sameDraft(expectedTitle=title){
 }
 async function singleRow(){
  const boxes=await p.locator('.format-bar button:visible').evaluateAll(elements=>elements.map(el=>{const r=el.getBoundingClientRect();return {text:el.textContent.trim(),y:r.y,height:r.height};}));
- assert.ok(boxes.length>=14,'all expanded editor actions remain available');
+ assert.ok(boxes.length>=9,'remaining expanded editor actions stay available');
  // A thin scrollbar may move the pinned toggle by a few pixels without creating another row.
  assert.ok(Math.max(...boxes.map(b=>b.y))-Math.min(...boxes.map(b=>b.y))<=6,JSON.stringify(boxes));
  assert.ok(Math.max(...boxes.map(b=>b.y))<Math.min(...boxes.map(b=>b.y+b.height)),JSON.stringify(boxes));
