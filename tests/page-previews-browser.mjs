@@ -22,6 +22,7 @@ try{
   {name:'broken.pdf',mimeType:'application/pdf',buffer:Buffer.from('broken')},
   {name:'broken.pptx',mimeType:'application/octet-stream',buffer:Buffer.from('broken')}
  ]);
+ await p.locator('[data-media-choice="expanded"]').click();
  await p.locator('[data-page-conversion="close"]:not([disabled])').waitFor({timeout:120000});await p.locator('[data-page-conversion="close"]').click();
  await p.locator('.editing-files>div').nth(4).waitFor();
  const open=async name=>p.locator('.editing-files>div').filter({has:p.locator('span',{hasText:name})}).getByRole('button',{name:/미리보기/}).click();

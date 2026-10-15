@@ -70,7 +70,7 @@ try{
   assert.ok(s.files.some(f=>f.hash===s.assets.find(a=>a.id===pageOne.assetId).hash));
  });
  await check('PPTX drop onto draft adds three independent slide PNGs while preserving draft text',async()=>{
-  await click('edit');await page.locator('#edit-body').fill('슬라이드 넣기 전 적은 글');await drop('가상 슬라이드.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation',pptx);await finished();
+  await click('edit');await page.locator('#edit-body').fill('슬라이드 넣기 전 적은 글');await drop('가상 슬라이드.pptx','application/vnd.openxmlformats-officedocument.presentationml.presentation',pptx);await page.locator('[data-media-choice="expanded"]').click();await finished();
   assert.equal(await page.locator('#edit-body').inputValue(),'슬라이드 넣기 전 적은 글');assert.equal(await page.locator('.document-page-card').count(),5);
   const s=await waitState(s=>s.files.filter(f=>f.path.endsWith('.png')).length===5);
   assert.equal(s.notes.length,1);assert.equal(s.notes[0].id,noteId);
@@ -89,7 +89,7 @@ try{
   assert.match(html,/첫 페이지에 남긴 내 의견/);assert.match(html,/두 번째 페이지 질문/);assert.equal((html.match(/<img /g)||[]).length,5);
  });
  await check('legacy PPT yields an actionable local-conversion message and keeps original',async()=>{
-  await drop('옛자료.ppt','application/vnd.ms-powerpoint',Buffer.from('legacy'));
+  await drop('옛자료.ppt','application/vnd.ms-powerpoint',Buffer.from('legacy'));await page.locator('[data-media-choice="expanded"]').click();
   await page.locator('[data-page-conversion="close"]:not([disabled])').waitFor();assert.match(await page.locator('.page-conversion-jobs').innerText(),/PPTX|pptx|PDF/);await page.locator('[data-page-conversion="close"]').click();
   const s=await state();assert.ok(s.assets.some(a=>a.name==='옛자료.ppt'));assert.equal(s.notes[0].documentPages.length,5);
  });
