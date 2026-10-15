@@ -1,0 +1,84 @@
+/* Quiet surfaces for navigation and controls; theme colors still mark actions and selection. */
+@media screen{
+ :root{--ui-surface:#f5f7f9;--ui-hover:#eef1f5;--ui-line:#e8ecf1;--ui-control:#d8dee7;--ui-muted:#66707e;--writing-muted:#66707e}
+ .sidebar,.sidebar-header{background:var(--ui-surface)}
+ .sidebar{border-right:0;padding-top:20px}
+ .sidebar-header .brand small{color:var(--ui-muted)}
+ .sidebar .nav-item{border-radius:8px}
+ .sidebar .nav-item:not(.active):hover,.side-bottom .quiet:hover{background:var(--ui-hover)}
+ .sidebar .primary{border-radius:8px}
+ .topbar{border-bottom:1px solid var(--ui-line);background:#fff}
+ .topbar .quiet,.doc-actions .quiet,.icon-button{border-radius:8px}
+ .panel-collapse,.mirror-top-status{border-color:transparent;background:transparent;color:var(--ui-muted);box-shadow:none}
+ .panel-collapse:hover,.mirror-top-status:hover{background:var(--ui-hover);color:var(--ink)}
+ .guide-launch>span{border-color:var(--ui-control);color:var(--ui-muted)}
+ .record-list{background:#fff;border-right-color:var(--ui-line)}
+ .record-list .list-heading{padding-bottom:16px}
+ .record-list .list-heading h1{font-size:20px;font-weight:650;letter-spacing:-.5px}
+ .list-search input{background:var(--ui-surface);border-color:transparent;border-radius:8px}
+ .list-search input:focus{background:#fff;border-color:var(--ui-control)}
+ .notes.list{padding-block:4px 12px}
+ .notes.list .note-row{width:calc(100% - 16px);margin:2px 8px;padding:14px;border:0;border-radius:9px}
+ .notes.list .note-row:not(.selected):hover{background:var(--ui-surface)}
+ .notes.list .note-row.selected{background:var(--soft)}
+ .notes.list .note-row.selected:before{top:16px;bottom:16px;left:0;width:3px;border-radius:3px}
+ body .note-row>p{color:var(--ui-muted)}
+ body :is(.note-eyebrow,.note-meta){color:var(--ui-muted)}
+ :is(button,a,input,textarea,select,summary):focus-visible{outline-color:var(--accent-text)}
+ .notes.cards .note-row{border-color:var(--ui-line);border-radius:10px;background:#fff}
+ .notes.cards .note-row.selected{border-color:var(--accent-border);background:var(--soft)}
+ .notes.cards .note-row:not(.selected):hover{background:var(--ui-surface)}
+ .page-title{font-weight:650;letter-spacing:-.65px}
+ .page-tags{gap:6px}
+ .page-tags .chip,.page-tags .tag{border:0;border-radius:5px;padding:4px 8px}
+ .page-tags .chip{background:var(--ui-surface);color:var(--ui-muted)}
+ .page-tags .chip:hover{background:var(--ui-hover);color:var(--ink)}
+ .page-tags .chip.on,.page-tags .chip[aria-pressed=true]{background:var(--soft);color:var(--accent-text)}
+ .page-tags .review-date{font-size:11px;color:var(--ui-muted)}
+ .document-toolbar{border-bottom-color:transparent}
+ .editor-header{border-bottom-color:var(--ui-line)}
+ .editor-header .document-toolbar,.editor-heading .format-bar{border:0}
+ .editor-heading .format-bar .format{border-radius:6px;background:transparent;color:var(--ui-muted)}
+ .editor-heading .format-bar .format:hover{background:var(--ui-hover);color:var(--ink)}
+ .editor-heading .format-bar .format[aria-expanded=true]{background:var(--soft);color:var(--accent-text)}
+ .editor-heading .tools-toggle{border-color:transparent}
+ .editor-header .editor-section-toggle[aria-expanded=true]{background:var(--ui-surface);color:var(--ui-muted)}
+ .editor-heading .property-grid{background:var(--ui-surface);border:0;border-radius:8px}
+ .editor-heading .property-grid :is(input,select){border-color:var(--ui-control);border-radius:6px}
+ .reader-info{border-top:0;border-bottom:1px solid var(--ui-line)}
+ .reader-info .file-places{border:0;background:transparent;padding-inline:0;margin-bottom:12px}
+ .body-link-card{border-color:transparent;background:var(--ui-surface);border-radius:10px}
+ .attachment-card{border-color:var(--ui-line);border-radius:10px}
+ .editing-files>div{border-bottom-color:var(--ui-line);padding-block:10px}
+ .document-page-card{border-color:var(--ui-line);border-radius:10px}
+ .document-page-card>header,.page-image-download{background:var(--ui-surface)}
+ .page-image-download img{border:0}
+ .page-comment-label textarea{border-color:var(--ui-control);border-radius:8px}
+ .related{border-top-color:var(--ui-line)}
+ dialog:not(.pkos-guide){border:1px solid var(--ui-line);border-radius:16px;box-shadow:0 24px 80px #1c273329,0 4px 16px #1c27330d}
+ dialog:not(.pkos-guide)::backdrop{background:#25304452;backdrop-filter:blur(2px)}
+ dialog:not(.pkos-guide)>header{border-bottom-color:var(--ui-line)}
+ dialog:not(.pkos-guide)>header h2{font-weight:650;letter-spacing:-.4px}
+ .guide-card{border-color:var(--ui-line);background:#fff;box-shadow:0 24px 80px #1c273329;border-radius:16px}
+ .guide-card p{color:var(--ui-muted)}
+ .command-menu{border-color:var(--ui-line);background:#fff;box-shadow:0 12px 40px #1c27331f}
+ .document-preview-dialog:has(.html-preview-frame)>header{border:0;padding-bottom:12px}
+ dialog.document-preview-dialog:has(.html-preview-frame) .dialog-body{padding-top:0}
+ .html-preview-toolbar{gap:10px}
+ .html-preview-toolbar label{flex-direction:row;margin:0;gap:8px;flex:1}
+ .html-preview-toolbar select{max-width:100%;flex:1;background:var(--ui-surface);border-color:transparent;border-radius:8px}
+ .html-preview-toolbar [data-html-download]{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:7px 12px;background:var(--ui-surface);border-radius:8px;color:var(--accent-text);text-decoration:none;font-weight:550}
+ .html-preview-toolbar [data-html-download]:hover{background:var(--ui-hover)}
+ dialog.document-preview-dialog .html-preview-note{font-size:12px;color:var(--ui-muted);line-height:1.6;margin:10px 0 14px}
+ .html-preview-frame{border:0;border-radius:0;background:#fff}
+ .sidebar,.notes,.document,.editor-tools-scroll{scrollbar-width:thin;scrollbar-color:#bdc5cf transparent}
+ @media(max-width:700px){
+  .notes.list .note-row{padding:16px;margin-block:3px}
+  .topbar{border-bottom-color:var(--ui-line)}
+  .document-toolbar{border-bottom-color:var(--ui-line)}
+  .html-preview-toolbar [data-html-download]{min-height:40px}
+ }
+ @media(prefers-reduced-motion:no-preference){
+  .nav-item,.note-row,.quiet,.format,.panel-collapse,.html-preview-toolbar a{transition:background-color .12s,color .12s,border-color .12s}
+ }
+}

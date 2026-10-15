@@ -59,7 +59,7 @@ try{
  await open('broken.pdf');await p.getByText('PDF를 미리 볼 수 없습니다.',{exact:false}).waitFor();await click('dialog-close');
  await open('broken.pptx');await p.frameLocator('.pptx-frame').getByText('PPTX를 미리 볼 수 없습니다.',{exact:false}).waitFor();await click('dialog-close');
  checks.push('Legacy PPT and corrupt PDF/PPTX give actionable messages');
- await click('preview');await p.locator('.attachment-card').nth(4).waitFor();
+ await p.keyboard.press('Control+e');await p.locator('.attachment-card').nth(4).waitFor();
  await p.locator('.attachment-card').filter({hasText:'lesson.pptx'}).getByRole('button',{name:'슬라이드 미리보기'}).click();await p.frameLocator('.pptx-frame').locator('#pages[data-rendered="1"]').waitFor();await click('dialog-close');
  await p.reload();await p.locator('.attachment-card').nth(4).waitFor();
  const data=await p.evaluate(async()=>{const {openStore}=await import('./store.js');return (await openStore(false)).backup();});

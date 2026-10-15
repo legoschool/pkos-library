@@ -1,0 +1,8 @@
+.html-preview-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.html-preview-toolbar label{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%;font-size:13px}
+.html-preview-toolbar select{min-width:0;max-width:60vw}
+.html-preview-toolbar a{font-size:13px;white-space:nowrap}
+.html-preview-note{font-size:12px;color:var(--muted);line-height:1.6;margin:10px 0}
+.html-preview-frame{display:block;width:100%;height:65dvh;min-height:220px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.html-preview-frame[hidden]{display:none}
+@media(max-width:600px){.html-preview-frame{height:60dvh}.html-preview-toolbar label{width:100%}.html-preview-toolbar select{flex:1;max-width:100%}}
