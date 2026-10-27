@@ -133,9 +133,12 @@ try{
   await edit();await page.locator('#edit-body').fill('버튼을 누르지 않아도 자동 저장되는 글입니다.');await mirrored('버튼을 누르지 않아도 자동 저장되는 글입니다.');
   assert.equal(await page.locator('#edit-body').inputValue(),'버튼을 누르지 않아도 자동 저장되는 글입니다.');assert.ok(await page.locator('#edit-body').isVisible());
  });
- await check('typing during a clean Save waiting on the folder is committed and mirrored while the editor stays open',async()=>{
-  await holdMirror();await page.locator('.doc-actions [data-action="save"]').click();await mirrorBusy();
-  const latest='느린 폴더 저장을 기다리는 동안 새로 입력한 글도 남습니다.';await page.locator('#edit-body').fill(latest);await releaseMirror();
+ await check('clean Save skips a redundant folder scan; later typing still saves while the editor stays open',async()=>{
+  await page.waitForFunction(()=>[...document.querySelectorAll('[data-mirror-status]')].some(el=>el.textContent==='로컬 폴더 저장됨'));
+  await holdMirror();await page.locator('.doc-actions [data-action="save"]').click();
+  const clean=await page.evaluate(async()=>({busy:[...document.querySelectorAll('[data-mirror-status]')].some(el=>el.textContent==='로컬 폴더 저장 중'),pending:(await navigator.locks.query()).pending.filter(lock=>lock.name==='pkos-folder-mirror-pkem-real-personal-v1').length}));
+  assert.equal(clean.busy,false);assert.equal(clean.pending,0);assert.ok(await page.locator('#edit-body').isVisible());
+  const latest='느린 폴더 저장을 기다리는 동안 새로 입력한 글도 남습니다.';await page.locator('#edit-body').fill(latest);await mirrorBusy();await releaseMirror();
   await mirrored(latest);assert.equal((await state()).notes.find(n=>n.id===noteId).body,latest);assert.ok(await page.locator('#edit-body').isVisible());assert.equal(await page.locator('#edit-body').inputValue(),latest);
  });
  await check('navigation waits for edits typed during an earlier slow folder save instead of discarding the newer draft',async()=>{

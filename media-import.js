@@ -2,6 +2,7 @@ import {isImageAsset,imageGroupsOf} from './image-groups-model.js';
 
 let activeChoice=null;
 let choiceId=0;
+let activeImagePreview=null,imagePreviewId=0;
 const mountedGroups=new WeakMap();
 
 // This dialog owns only the choice; callers save the original files after it resolves.
@@ -10,7 +11,7 @@ export function chooseMediaPresentation(files){
  const input=Array.from(files||[]),legacy=input.some(file=>/\.ppt$/i.test(file?.name||''));
  const d=document.createElement('dialog'),titleId='media-choice-title-'+(++choiceId);
  d.className='media-choice-dialog';d.setAttribute('aria-labelledby',titleId);
- d.innerHTML='<header><h2 id="'+titleId+'">어떻게 넣을까요?</h2><button type="button" class="quiet" data-media-choice="cancel" aria-label="닫기">닫기</button></header><div class="dialog-body"><div class="media-choice-options"><button type="button" data-media-choice="expanded"><strong>페이지별로 펼쳐 넣기</strong><span>사진은 한 장씩, PPT는 페이지 이미지로 펼칩니다.</span></button><button type="button" data-media-choice="slides"><strong>슬라이드로 넘겨 보기</strong><span>사진과 PPT를 한 장씩 넘겨 봅니다.</span></button></div><p class="media-choice-note">어느 쪽을 골라도 원본 파일은 그대로 보관합니다.</p>'+(legacy?'<p class="media-choice-note">옛 .ppt 파일은 원본을 보관합니다. 내용을 보려면 .pptx 또는 PDF 사본을 넣어 주세요.</p>':'')+'</div>';
+ d.innerHTML='<header><h2 id="'+titleId+'">어떻게 넣을까요?</h2><button type="button" class="quiet" data-media-choice="cancel" aria-label="닫기">닫기</button></header><div class="dialog-body"><div class="media-choice-options"><button type="button" data-media-choice="expanded"><strong>한 장씩 펼쳐 보기</strong><span>사진·PDF·PPT를 페이지별로 펼쳐 놓고 기록합니다.</span></button><button type="button" data-media-choice="slides"><strong>슬라이드로 넘겨 보기</strong><span>사진·PDF·PPT를 한 장씩 넘겨 봅니다.</span></button></div><p class="media-choice-note">어느 쪽을 골라도 원본 파일은 그대로 보관합니다.</p>'+(legacy?'<p class="media-choice-note">옛 .ppt 파일은 원본을 보관합니다. 내용을 보려면 .pptx 또는 PDF 사본을 넣어 주세요.</p>':'')+'</div>';
  return new Promise(resolve=>{
   let settled=false;
   const finish=value=>{
@@ -32,6 +33,27 @@ function element(tag,className,text){
  const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;
 }
 
+// Preview the saved original without navigating away or triggering a download.
+export function showImagePreview(asset){
+ if(!isImageAsset(asset)||!(asset.blob instanceof Blob))return null;
+ activeImagePreview?.close();
+ const dialog=element('dialog','image-preview-dialog'),header=element('header'),title=element('h2','',asset.name||'사진 미리보기');
+ title.id='image-preview-title-'+(++imagePreviewId);dialog.setAttribute('aria-labelledby',title.id);
+ const close=element('button','quiet','닫기');close.type='button';close.dataset.imagePreviewClose='';close.autofocus=true;close.addEventListener('click',()=>dialog.close());header.append(title,close);
+ const stage=element('div','image-preview-stage'),image=element('img');image.alt=asset.name||'사진';image.decoding='async';
+ const status=element('p','image-preview-status','사진을 불러오는 중입니다.');status.setAttribute('role','status');
+ image.addEventListener('load',()=>{status.hidden=true;},{once:true});image.addEventListener('error',()=>{image.hidden=true;status.hidden=false;status.textContent='사진을 표시하지 못했습니다. 원본을 내려받아 확인해 주세요.';},{once:true});
+ const url=URL.createObjectURL(asset.blob);image.src=url;stage.append(image);
+ const footer=element('footer'),download=element('a','image-group-download','원본 다운로드');download.href=url;download.download=asset.name||'사진';download.dataset.imagePreviewDownload='';footer.append(download);
+ dialog.append(header,stage,status,footer);
+ let disposed=false;
+ const dispose=()=>{if(disposed)return;disposed=true;observer.disconnect();URL.revokeObjectURL(url);dialog.remove();if(activeImagePreview===dialog)activeImagePreview=null;};
+ const observer=new MutationObserver(()=>{if(!dialog.isConnected)dispose();});
+ dialog.addEventListener('close',dispose,{once:true});document.body.append(dialog);observer.observe(document.body,{childList:true,subtree:true});activeImagePreview=dialog;
+ try{dialog.showModal();}catch(error){dispose();throw error;}
+ return dialog;
+}
+
 export function mountImageGroups(host,note,assets,{onModeChange,onDetach,editing=false}={}){
  if(!host)return ()=>{};
  mountedGroups.get(host)?.();
@@ -43,11 +65,12 @@ export function mountImageGroups(host,note,assets,{onModeChange,onDetach,editing
   try{const url=URL.createObjectURL(asset.blob);urls.set(asset.id,url);return url;}catch{return '';}
  };
  const picture=(asset,className,lazy=false)=>{
-  const image=element('img',className);image.alt=asset.name||'사진';image.decoding='async';if(lazy)image.loading='lazy';
+  const image=element('img',className);image.alt=asset.name||'사진';image.dataset.imageAsset=asset.id;image.decoding='async';if(lazy)image.loading='lazy';
+  const button=element('button','image-preview-button');button.type='button';button.dataset.imagePreviewAsset=asset.id;button.setAttribute('aria-label','사진 크게 보기: '+(asset.name||'사진'));button.append(image);
   const url=urlFor(asset);if(url)image.src=url;
   const problem=element('p','image-group-error','사진을 표시하지 못했습니다. 원본을 내려받아 확인해 주세요.');problem.hidden=!!url;
   image.addEventListener('error',()=>{if(!disposed&&image.isConnected){problem.hidden=false;image.hidden=true;}},{once:true});
-  return [image,problem];
+  return [button,problem];
  };
  const original=(asset,state)=>{
   const row=element('div','image-group-original');
@@ -94,6 +117,7 @@ export function mountImageGroups(host,note,assets,{onModeChange,onDetach,editing
  const clicked=async event=>{
   const target=event.target.closest('button');if(!target)return;
   const state=stateFor(target);if(!state||state.pending||disposed)return;
+  if(target.dataset.imagePreviewAsset){showImagePreview(assetMap.get(target.dataset.imagePreviewAsset));return;}
   if(target.dataset.imageStep){step(state,state.index+Number(target.dataset.imageStep),target.dataset.imageStep);return;}
   const mode=target.dataset.imageGroupMode,detach=target.dataset.imageDetach;if(!mode&&!detach)return;
   state.pending=true;target.disabled=true;

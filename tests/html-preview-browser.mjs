@@ -5,7 +5,7 @@ import path from 'node:path';
 import {launchBrowser} from './browser-runtime.mjs';
 
 const base=process.env.PKOS_TEST_URL||'http://127.0.0.1:8915/';
-const out='test-results/html-preview-20261015';
+const out=process.env.PKOS_HTML_TEST_OUT||'test-results/html-preview-20261015';
 await fs.mkdir(out,{recursive:true});
 const origin=new URL(base).origin;
 const pixel='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZAAAAABJRU5ErkJggg==';
@@ -155,6 +155,7 @@ try{
   const pdf={name:'함께 넣은 문서.pdf',mimeType:'application/pdf',buffer:await fs.readFile(new URL('./fixtures/document-pages.pdf',import.meta.url))};
   const mixed={name:'변환 뒤에 보는 HTML.html',mimeType:'text/html',buffer:Buffer.from('<!doctype html><h1 id="mixed-title">PDF 뒤에 열린 HTML</h1>')};
   await action('attach');await p.locator('#file-input').setInputFiles([pdf,mixed]);
+  await p.locator('[data-media-choice="expanded"]').click();
   await p.locator('[data-page-conversion="close"]:not([disabled])').waitFor({timeout:120000});
   assert.equal(await p.locator('dialog[open]').count(),1,'only the conversion dialog is open');
   assert.equal(await p.locator('#dialog[open] iframe.html-preview-frame').count(),0,'HTML waits while conversion results remain open');

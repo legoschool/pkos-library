@@ -66,6 +66,7 @@ export async function setupFolderMirror({db,demo,toast,flush}){
  async function sync(manual=false){
   clearTimeout(timer);timer=null;
   if(running)return running;
+  if(!manual&&!pending)return true;
   if(connecting||!supported||!config?.handle||!config.enabled&&!manual)return true;
   running=(async()=>{
    try{

@@ -1,4 +1,4 @@
-// Fictional image/PPT files in isolated browser profiles; no personal library is changed.
+// Fictional image/PDF/PPT files in isolated browser profiles; no personal library is changed.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -10,6 +10,7 @@ const base=process.env.PKOS_TEST_URL||'http://127.0.0.1:8915/';
 const out=process.env.PKOS_MEDIA_TEST_OUT||'test-results/media-import-20261015';
 await fs.mkdir(out,{recursive:true});
 const pptx=await fs.readFile(new URL('./fixtures/document-pages.pptx',import.meta.url));
+const pdf=await fs.readFile(new URL('./fixtures/document-pages.pdf',import.meta.url));
 const checks=[],errors=[];
 const browser=await launchBrowser();
 const ctx=await browser.newContext({viewport:{width:1366,height:900},acceptDownloads:true});
@@ -94,6 +95,38 @@ try{
    await group().locator('.image-group-slide img').waitFor();assert.equal(await p.locator('#edit-body').inputValue(),late);await waitState(d=>d.notes.find(n=>n.id===draftNoteId)?.body===late);
    await p.keyboard.press('Control+e');await p.locator('#markdown').waitFor();
   }finally{await p.evaluate(()=>window.__restoreMediaStore?.());}
+ });
+ await check('PDF drop waits for a choice and cancel leaves no notes, assets or generated pages',async()=>{
+  const before=await state();await drop([{name:'취소할 가상 자료.PDF',mimeType:'application/octet-stream',buffer:pdf}]);
+  await p.locator('[data-media-choice="slides"]').waitFor();assert.equal(await p.locator('.page-conversion-dialog').count(),0);
+  const unchanged=async()=>{const data=await state();assert.deepEqual(data.notes,before.notes);assert.deepEqual(data.assets,before.assets);};
+  await unchanged();await choice('cancel');await unchanged();
+ });
+ await check('PDF slide choice keeps only the original and opens working next/previous navigation',async()=>{
+  const file={name:'넘겨 보는 가상 자료.pdf',mimeType:'application/pdf',buffer:pdf};
+  await drop([file]);await choice('slides');await p.locator('.pdf-preview[data-rendered="1"]').waitFor();
+  const data=await state(),asset=original(data,file),note=data.notes.find(n=>n.attachments.includes(asset.id));
+  assert.deepEqual(note.attachments,[asset.id]);assert.equal(note.documentPages?.length||0,0);assert.equal(await p.locator('.page-conversion-dialog').count(),0);
+  await p.locator('.pdf-preview [data-pdf-step="1"]').click();await p.locator('.pdf-preview[data-rendered="2"]').waitFor();
+  await p.locator('.pdf-preview [data-pdf-step="-1"]').click();await p.locator('.pdf-preview[data-rendered="1"]').waitFor();
+  await p.screenshot({path:path.join(out,'pdf-slides-desktop.png')});await action('dialog-close');
+ });
+ await check('PDF file picker offers expanded pages and preserves the existing draft',async()=>{
+  await openNote(draftNoteId);await action('edit');const draftText=await p.locator('#edit-body').inputValue();
+  const file={name:'펼쳐 보는 가상 자료.PDF',mimeType:'application/octet-stream',buffer:pdf};
+  await action('attach');await p.locator('#file-input').setInputFiles(file);await choice('expanded');await finished();
+  assert.equal(await p.locator('#edit-body').inputValue(),draftText);assert.equal(await p.locator('.document-page-card').count(),2);
+  const data=await state(),asset=original(data,file),note=data.notes.find(n=>n.id===draftNoteId);
+  assert.equal(note.documentPages.length,2);assert.ok(note.documentPages.every(page=>page.sourceAssetId===asset.id));
+  await p.keyboard.press('Control+e');await p.locator('#markdown').waitFor();
+ });
+ await check('PDF MIME detection and mixed photo drop share one choice and preserve both original files',async()=>{
+  const file={name:'확장자 없는 가상 자료',mimeType:'application/pdf',buffer:pdf},photo={...photos[0],name:'문서와 함께 보는 사진.png'};
+  await drop([file,photo]);await p.locator('[data-media-choice="slides"]').waitFor();assert.equal(await p.locator('.media-choice-dialog[open]').count(),1);
+  await choice('slides');await p.locator('.pdf-preview[data-rendered="1"]').waitFor();
+  const data=await state(),asset=original(data,file),picture=original(data,photo),note=data.notes.find(n=>n.attachments.includes(asset.id)),photoNote=data.notes.find(n=>n.attachments.includes(picture.id));
+  assert.equal(note.documentPages?.length||0,0);assert.equal(photoNote.imageGroups[0].mode,'slides');assert.equal(await p.locator('.page-conversion-dialog').count(),0);
+  await action('dialog-close');
  });
  await check('PPT slide choice opens the original viewer without generating page images',async()=>{
   const file={name:'넘겨 보는 가상 발표.pptx',mimeType:'application/vnd.openxmlformats-officedocument.presentationml.presentation',buffer:pptx};

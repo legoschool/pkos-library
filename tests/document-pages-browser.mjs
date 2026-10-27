@@ -32,7 +32,7 @@ try{
  await click('folder-mirror');await page.locator('[data-mirror-command="choose"]').click();await page.locator('[data-mirror-command="now"]:not([disabled])').waitFor();await page.locator('[data-mirror-close]').click();
  let noteId,sourceId,pageOne,pageTwo;
  await check('PDF drop saves two complete PNG pages and exact original in connected folder',async()=>{
-  await drop('가상 수업.pdf','application/pdf',pdf);await finished();
+  await drop('가상 수업.pdf','application/pdf',pdf);await page.locator('[data-media-choice="expanded"]').click();await finished();
   assert.equal(await page.locator('.document-page-card').count(),2);
   const s=await waitState(s=>s.files.filter(f=>f.path.endsWith('.png')).length===2);
   const note=s.notes[0];noteId=note.id;[pageOne,pageTwo]=note.documentPages;sourceId=pageOne.sourceAssetId;

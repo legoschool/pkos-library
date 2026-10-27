@@ -20,7 +20,7 @@ class Store{
    // every owner in the same transaction, including deleted pages and note copies.
    if(retiredAssetIds.length){const owners=store.getAll();owners.onsuccess=()=>{const used=new Set(owners.result.flatMap(documentAssetReferences));for(const id of retiredAssetIds)if(!used.has(id))tx.objectStore('assets').delete(id);};}
   };
-  tx.oncomplete=()=>{this.changed();resolve(note);};tx.onabort=()=>reject(conflict?new ConflictError():tx.error||Error('첨부 저장 실패'));tx.onerror=()=>reject(tx.error);
+  tx.oncomplete=()=>{this.changed();resolve(note);};tx.onabort=()=>reject(conflict?new ConflictError():tx.error||Error('첨부 저장 실패'));tx.onerror=()=>reject(tx.error||Error('첨부 저장 실패'));
  });}
  clear(){return new Promise((resolve,reject)=>{const tx=this.db.transaction(['notes','assets','meta'],'readwrite');for(const name of ['notes','assets','meta'])tx.objectStore(name).clear();tx.oncomplete=()=>{this.changed();resolve();};tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('비우기 실패'));});}
  deleteMeta(id){return new Promise((resolve,reject)=>{const tx=this.db.transaction('meta','readwrite');tx.objectStore('meta').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||Error('삭제 실패'));});}

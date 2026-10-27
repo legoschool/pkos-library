@@ -30,6 +30,24 @@
 .image-group-expanded figure{min-width:0;margin:0}
 .image-group-expanded img{display:block;max-width:100%;height:auto;margin-inline:auto}
 .image-group-expanded figcaption{margin-top:6px}
+.image-preview-button{display:block;border:0;padding:0;background:transparent;border-radius:0;max-width:100%;margin-inline:auto;cursor:zoom-in}
+.image-preview-button:hover{background:transparent}
+.image-preview-button:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.image-group-slide>.image-preview-button{width:100%;height:100%}
+.editing-files>.editing-image{display:block;padding:12px 0}
+.editing-image>.image-preview-button{margin:8px auto}
+.editing-image>.image-preview-button img{display:block;max-width:100%;max-height:60vh;height:auto;object-fit:contain}
+.editing-image-details{display:flex;align-items:center;gap:10px;padding:8px;font-size:12px}
+.editing-image-details>span{flex:1;min-width:0;overflow-wrap:anywhere}
+.image-preview-dialog[open]{display:flex;flex-direction:column;width:min(1200px,calc(100vw - 32px));height:min(860px,calc(100dvh - 32px));max-height:calc(100dvh - 32px);padding:0;color:var(--ink)}
+.image-preview-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;flex:none}
+.image-preview-dialog>header h2{margin:0;font-size:15px;line-height:1.5;overflow-wrap:anywhere;min-width:0}
+.image-preview-dialog>header button{flex:none}
+.image-preview-stage{flex:1;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px 20px;overflow:hidden}
+.image-preview-stage img{display:block;width:auto;height:auto;max-width:100%;max-height:100%;object-fit:contain}
+.image-preview-dialog>footer{padding:8px 20px 12px;flex:none;display:flex;justify-content:flex-end}
+.image-preview-status{margin:0;padding:4px 20px;font-size:12px;color:var(--ui-muted,#66707e)}
+.image-preview-dialog [hidden]{display:none!important}
 .image-group-error,.image-group-action-error{font-size:12px;line-height:1.6;color:var(--ui-muted,#66707e)}
 .image-group [hidden]{display:none!important}
 @media(max-width:700px){

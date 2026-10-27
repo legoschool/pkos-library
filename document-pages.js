@@ -14,6 +14,27 @@ export function documentPagesHTML(note,assets,assetURL,editing=false){
   return '<section class="document-page-card" data-document-page="'+esc(page.id)+'"><header><h3>'+esc(title)+'</h3>'+(controls?'<div class="page-image-actions"><button type="button" class="quiet small" data-action="page-draw" data-page-id="'+esc(page.id)+'" aria-label="'+page.number+'페이지 그리기">✎ 그리기</button><button type="button" class="quiet small" data-action="page-delete" data-page-id="'+esc(page.id)+'" aria-label="'+page.number+'페이지 삭제">페이지 삭제</button></div>':'')+'</header>'+(url?'<a class="page-image-download" href="'+url+'" download="'+esc(asset.name)+'" title="페이지 이미지 저장"><img src="'+url+'" alt="'+esc(title)+'" loading="lazy"></a>':'<p class="error">페이지 이미지를 찾지 못했습니다.</p>')+(editing?'<label class="page-comment-label">내 의견<textarea data-page-comment="'+esc(page.id)+'" aria-label="'+page.number+'페이지 의견" maxlength="100000" placeholder="이 페이지에 대한 생각이나 필기를 적으세요.">'+esc(page.comment)+'</textarea></label>':'<div class="page-comment"><strong>내 의견</strong><p>'+esc(page.comment||'아직 적은 의견이 없습니다.')+'</p>'+(controls?'<button type="button" class="quiet small" data-action="page-edit" data-page-id="'+esc(page.id)+'">의견 적기</button>':'')+'</div>')+'</section>';
  }).join('')+(deleted.length&&controls?'<details class="deleted-pages"><summary>삭제한 페이지 '+deleted.length+'개</summary>'+deleted.map(page=>'<div><span>'+esc(assets.find(a=>a.id===page.sourceAssetId)?.name||'문서')+' · '+page.number+'페이지</span><button type="button" class="quiet small" data-action="page-restore" data-page-id="'+esc(page.id)+'">복원</button></div>').join('')+'</details>':'')+'</section>';
 }
+// Keep the other images and textareas mounted when deleting or restoring one page.
+export function updateDocumentPageUI(host,note,assets,assetURL,id,editing=false){
+ const section=host.querySelector('.document-pages');
+ if(!section){host.innerHTML=documentPagesHTML(note,assets,assetURL,editing);return;}
+ const pages=pagesOf(note),template=document.createElement('template');
+ template.innerHTML=documentPagesHTML({...note,documentPages:pages.filter(p=>p.deleted||p.id===id)},assets,assetURL,editing);
+ const existing=[...section.querySelectorAll('.document-page-card')].find(el=>el.dataset.documentPage===id);
+ const replacement=template.content.querySelector('.document-page-card');
+ if(replacement){
+  if(existing)existing.replaceWith(replacement);
+  else{
+   const laterIds=new Set(pages.slice(pages.findIndex(p=>p.id===id)+1).map(p=>p.id));
+   const following=[...section.querySelectorAll('.document-page-card')].find(el=>laterIds.has(el.dataset.documentPage));
+   section.insertBefore(replacement,following||section.querySelector('.deleted-pages'));
+  }
+ }else existing?.remove();
+ section.querySelector(':scope > header > span').textContent=pages.filter(p=>!p.deleted).length+'페이지';
+ const oldDeleted=section.querySelector('.deleted-pages'),newDeleted=template.content.querySelector('.deleted-pages');
+ if(newDeleted){newDeleted.open=oldDeleted?.open||false;if(oldDeleted)oldDeleted.replaceWith(newDeleted);else section.append(newDeleted);}
+ else oldDeleted?.remove();
+}
 let active=false;
 // Originals are saved first. Each completed page commits atomically and can be retried.
 export async function convertDocumentPages(jobs,api){
