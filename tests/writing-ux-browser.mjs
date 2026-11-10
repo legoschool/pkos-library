@@ -57,7 +57,7 @@ try{
     await tools(true);
     assert.ok(Math.abs((await p.locator('.editor-header').boundingBox()).height-closedHeight)<=1,'opening extra tools does not add another row');
     const row=await p.locator('.editor-tools-scroll').evaluate(el=>{const r=el.getBoundingClientRect(),buttons=[...el.querySelectorAll('button')].map(b=>b.getBoundingClientRect());return {height:r.height,centers:buttons.map(b=>b.top+b.height/2),heights:buttons.map(b=>b.height),overflows:el.scrollWidth>el.clientWidth};});
-    assert.equal(row.centers.length,13,'every formatting, media, link and block control remains available');
+    assert.equal(row.centers.length,9,'every media, drawing, link and block control remains available (Markdown formatting buttons were removed on 10-15)');
     assert.ok(row.height<=46&&Math.max(...row.centers)-Math.min(...row.centers)<=1,JSON.stringify(row));
     assert.ok(row.heights.every(h=>h>=40)&&row.overflows,JSON.stringify(row));
     for(const selector of ['[data-editor-tool="record"]','[data-editor-tool="dictate"]','[data-editor-tool="camera"]','#editor-extra-tools button:last-child']){

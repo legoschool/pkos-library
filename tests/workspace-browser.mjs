@@ -1,4 +1,6 @@
 import {createRequire} from 'node:module';
+// 10-13부터 「블록으로 편집」은 「도구 더 보기」를 펼쳐야 보인다
+const openBlocks=async page=>{const t=page.locator('[data-action="editor-tools"]').first();if(await t.getAttribute('aria-expanded')!=='true')await t.click();await page.getByRole('button',{name:'블록으로 편집',exact:true}).click();};
 import {writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const {chromium}=await import('./browser-runtime.mjs');
@@ -8,7 +10,7 @@ page.on('pageerror',e=>{errors.push(e.message);console.log('PAGE ERROR',e.messag
 try{
  await page.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});await page.goto('http://127.0.0.1:8898/');await page.waitForSelector('[data-action="new"]');
  await page.locator('[data-action="new"]').first().click();await page.locator('#edit-title').fill('새 기능 시험');await page.locator('#edit-body').fill('# 제목\n\n본문\n\n- [ ] 할 일\n');
- await page.getByRole('button',{name:'블록으로 편집',exact:true}).click();assert.equal(await page.locator('.block-row').count(),3);await page.locator('.block-row textarea').nth(1).fill('블록에서 수정\n\n');await page.locator('[data-action="save"]').last().click();await page.waitForSelector('#markdown');assert.ok((await page.locator('#markdown').innerText()).includes('블록에서 수정'));
+ await openBlocks(page);assert.equal(await page.locator('.block-row').count(),3);await page.locator('.block-row .block-rich').nth(1).fill('블록에서 수정');await page.locator('[data-action="preview"]:visible').first().click();await page.waitForSelector('#markdown');assert.ok((await page.locator('#markdown').innerText()).includes('블록에서 수정'));
  await page.locator('[data-action="database-new"]').click();await page.waitForSelector('#note-database');await page.locator('[data-db="add"]').click();await page.locator('[data-col="title"]').fill('테스트 행');await page.locator('[data-col="title"]').press('Tab');await page.waitForFunction(()=>document.querySelector('[data-db-status]')?.textContent==='저장됨');await page.reload();await page.waitForSelector('#note-database');assert.equal(await page.locator('[data-col="title"]').inputValue(),'테스트 행');
  await page.locator('[data-db-setting="view"]').selectOption('board');await page.waitForSelector('.db-board');await page.locator('[data-db-setting="view"]').selectOption('table');
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'tests/workspace-mobile.png',fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2));

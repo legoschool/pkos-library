@@ -144,8 +144,8 @@ try{
    await page.locator('#edit-body').fill(longBody);
    assert.ok(await page.locator('#edit-body').evaluate((e,h)=>e.getBoundingClientRect().height>=h*.5,height),'writing area remains tall');
    const formatButtons=page.locator('.editor-header .format-bar button');
-   assert.equal(await formatButtons.count(),14,'all formatting, media, linked-record and block controls remain in the fixed header');
-   assert.equal(await page.locator('.editor-tools-main button').count(),5,'the common toolbar stays compact');
+   assert.equal(await formatButtons.count(),10,'all media, drawing, linked-record and block controls remain in the fixed header (Markdown formatting buttons were removed on 10-15)');
+   assert.equal(await page.locator('.editor-tools-main button').count(),4,'the common toolbar stays compact: attach, draw, record, dictate');
    assert.equal(await page.locator('.format-bar > [data-action="editor-tools"]').count(),1,'the extra-tools toggle remains outside the scrolling controls');
    await tools(true);
    await page.getByRole('button',{name:'블록으로 편집',exact:true}).click();
