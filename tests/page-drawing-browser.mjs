@@ -59,6 +59,7 @@ try{
  await page.locator('[data-mirror-command="now"]:not([disabled])').waitFor();await page.locator('[data-mirror-close]').click();
  await check('synthetic PPTX uploads as three independent pages and unchanged original bytes',async()=>{
   await page.evaluate(bytes=>{const transfer=new DataTransfer();transfer.items.add(new File([new Uint8Array(bytes)],'그리기 시험.pptx',{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'}));document.querySelector('.workspace').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));},[...pptx]);
+  await page.locator('[data-media-choice="expanded"]').click();
   await page.locator('[data-page-conversion="close"]:not([disabled])').waitFor({timeout:120000});
   assert.match(await page.locator('.page-conversion-jobs').innerText(),/확인 완료/);await page.locator('[data-page-conversion="close"]').click();
   assert.equal(await page.locator('[data-action="page-draw"]').count(),3);

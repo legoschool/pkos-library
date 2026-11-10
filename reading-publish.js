@@ -21,9 +21,36 @@ export async function configurePublisher(key){
  key=String(key||'').trim();
  if(!/^[A-Za-z0-9_-]{43,128}$/.test(key))throw new Error('게시 설정 키를 확인해 주세요.');
  await request('status',{key});
+ return savePublisher(key);
+}
+function savePublisher(key){
  try{localStorage.setItem(KEY,key);}catch{throw new Error('이 브라우저에 게시 설정을 저장할 수 없습니다.');}
+ window.dispatchEvent(new Event('reading-publisher-change'));
  return {configured:true};
 }
+export async function connectPublisher(code,claimId){
+ if(!/^[A-Za-z0-9_-]{43}$/.test(code)||!/^[A-Za-z0-9_-]{43}$/.test(claimId))throw new Error('게시 연결 주소를 확인해 주세요.');
+ // Check storage before consuming the one-time connection. A retry with the
+ // same tab's claim ID recovers a response interrupted by a network failure.
+ try{const probe=KEY+'-probe';localStorage.setItem(probe,'1');localStorage.removeItem(probe);}catch{throw new Error('이 브라우저에 게시 설정을 저장할 수 없습니다.');}
+ const result=await request('connect',{method:'POST',body:{code,claimId},key:''});
+ if(!/^[A-Za-z0-9_-]{43,128}$/.test(result.key||''))throw new Error('게시 연결을 완료하지 못했습니다. 다시 시도해 주세요.');
+ savePublisher(result.key);
+ await finishPublisherConnection(code,claimId).catch(()=>{});
+ return {configured:true};
+}
+// 게시 설정이 된 브라우저에서 다른 기기(또는 다른 기록장 주소)용 연결 주소를 만든다. 한 시간 안에 한 번만 쓸 수 있다.
+// 주소를 연 브라우저는 publisher-connect.html 에서 키를 받아 저장하고, 서버는 그 연결을 바로 「사용함」으로 바꾼다
+export const CONNECT_ORIGINS=[['https://legoschool.github.io','GitHub 기록장(legoschool.github.io/pkos-library)'],['https://pkos-library.vercel.app','Vercel 기록장(pkos-library.vercel.app)']];
+export async function createPublisherConnection(origin){
+ if(!savedKey())throw new Error('게시 설정을 먼저 연결해 주세요.');
+ if(!CONNECT_ORIGINS.some(([o])=>o===origin))throw new Error('연결할 기록장 주소를 골라 주세요.');
+ const result=await request('create-connection',{method:'POST',body:{origin}});
+ let url;try{url=new URL(result.url);}catch{}
+ if(!url||url.origin!==origin||!/^#code=[A-Za-z0-9_-]{43}$/.test(url.hash))throw new Error('연결 주소를 만들지 못했습니다. 다시 시도해 주세요.');
+ return {url:url.href,expiresAt:result.expiresAt};
+}
+export function finishPublisherConnection(code,claimId){return request('finish-connection',{method:'POST',body:{code,claimId},key:''});}
 // Consume the setup fragment before normal record navigation rewrites the hash.
 // A fragment is never sent to the hosting server or included in the reader URL.
 export function consumePublisherSetup(){

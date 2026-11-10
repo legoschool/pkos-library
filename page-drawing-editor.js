@@ -24,35 +24,49 @@ function loadImage(url) {
  });
 }
 
+function createBlankImage() {
+ const image = document.createElement('canvas');
+ image.width = 1600; image.height = 1000;
+ const ctx = image.getContext('2d');
+ if (!ctx) throw Error('빈 그림판을 만들 수 없습니다. 닫은 뒤 다시 시도해 주세요.');
+ ctx.fillStyle = '#ffffff';
+ ctx.fillRect(0, 0, image.width, image.height);
+ return image;
+}
+
 function canvasBlob(canvas) {
  return new Promise((resolve, reject) => {
   try { canvas.toBlob(blob => blob ? resolve(blob) : reject(Error('그림 이미지를 만들지 못했습니다. 다시 저장해 주세요.')), 'image/png'); }
-  catch { reject(Error('그림 이미지를 저장할 수 없습니다. 페이지 이미지를 다시 열어 주세요.')); }
+  catch { reject(Error('그림 이미지를 저장할 수 없습니다. 그림판을 다시 열어 주세요.')); }
  });
 }
 
-/** Opens a modal editor. onSave must persist both the annotations and composite PNG. */
-export async function openPageDrawing({imageUrl, annotations, title = '페이지', onSave}) {
+/** Opens a modal editor, or a blank 1600×1000 drawing when imageUrl is omitted.
+ * onSave must persist both the editable annotations and composite PNG. */
+export async function openPageDrawing({imageUrl, annotations, title, onSave}) {
  if (currentDialog?.isConnected) { currentDialog.focus(); return false; }
  if (typeof onSave !== 'function') throw Error('그림 저장 기능이 연결되지 않았습니다.');
+ const isBlank = !imageUrl;
+ const drawingTitle = title ?? (isBlank ? '내 그림' : '페이지');
+ const surface = isBlank ? '그림판' : '이미지';
  const previousFocus = document.activeElement;
  const dialog = document.createElement('dialog');
  dialog.className = 'page-drawing-dialog';
  dialog.setAttribute('aria-labelledby', 'page-drawing-title');
  dialog.setAttribute('aria-describedby', 'page-drawing-hint');
  dialog.innerHTML = `
-  <header class="page-drawing-header"><div><h2 id="page-drawing-title">페이지에 그리기</h2><p class="page-drawing-name"></p></div><div class="page-drawing-header-actions"><button type="button" data-drawing-action="cancel">취소</button><button type="button" class="page-drawing-save" data-drawing-action="save" disabled>그림 저장</button></div></header>
+  <header class="page-drawing-header"><div><h2 id="page-drawing-title">${isBlank ? '직접 그리기' : '페이지에 그리기'}</h2><p class="page-drawing-name"></p></div><div class="page-drawing-header-actions"><button type="button" data-drawing-action="cancel">취소</button><button type="button" class="page-drawing-save" data-drawing-action="save" disabled>그림 저장</button></div></header>
   <div class="page-drawing-tools" role="group" aria-label="그리기 도구">${tools.map(([id,label,body]) => `<button type="button" data-drawing-tool="${id}" aria-pressed="${id === 'pen'}" title="${label}">${icon(body)}<span>${label}</span></button>`).join('')}<span class="page-drawing-divider"></span><button type="button" data-drawing-action="undo" aria-label="되돌리기" title="되돌리기 (Ctrl Z)" disabled>${icon('<path d="M3 9h11a7 7 0 0 1 0 14M8 4 3 9l5 5"/>')}</button><button type="button" data-drawing-action="redo" aria-label="다시 실행" title="다시 실행 (Ctrl Shift Z)" disabled>${icon('<path d="M21 9H10a7 7 0 0 0 0 14M16 4l5 5-5 5"/>')}</button><button type="button" data-drawing-action="clear" disabled>모두 지우기</button></div>
   <div class="page-drawing-options"><div class="page-drawing-colors" role="group" aria-label="색상">${colors.map(([color,label]) => `<button type="button" class="page-drawing-swatch" data-drawing-swatch="${color}" style="--swatch:${color}" aria-label="${label}" aria-pressed="${color === '#ef4444'}" title="${label}"></button>`).join('')}<label class="page-drawing-custom-color" title="다른 색상"><span class="sr-only">다른 색상</span><input type="color" data-drawing-color aria-label="다른 색상" value="#ef4444"></label></div><label class="page-drawing-size"><span data-drawing-size-label>굵기</span><input type="range" min="1" max="20" value="4" data-drawing-size aria-label="굵기"><output data-drawing-size-value>4</output></label><div class="page-drawing-stickers" role="group" aria-label="스티커 선택" hidden>${stickers.map(([text,label], i) => `<button type="button" data-drawing-sticker="${text}" aria-label="${label} 스티커" aria-pressed="${i === 0}" title="${label}">${text}</button>`).join('')}</div></div>
-  <div class="page-drawing-stage" aria-busy="true"><canvas class="page-drawing-canvas" tabindex="0" aria-label="페이지 그림판. 펜과 도형은 드래그하고 스티커는 원하는 위치를 누르세요." hidden></canvas><p class="page-drawing-loading">이미지를 여는 중…</p></div>
-  <footer class="page-drawing-footer"><div><p id="page-drawing-hint">이미지 위를 드래그해 그리세요.</p><p class="page-drawing-status" role="status" aria-live="polite"></p></div><button type="button" data-drawing-action="download" disabled>PNG 내려받기</button></footer>
+  <div class="page-drawing-stage" aria-busy="true"><canvas class="page-drawing-canvas" tabindex="0" aria-label="${isBlank ? '그림판' : '페이지 그림판'}. 펜과 도형은 드래그하고 스티커는 원하는 위치를 누르세요." hidden></canvas><p class="page-drawing-loading">${isBlank ? '그림판을 여는 중…' : '이미지를 여는 중…'}</p></div>
+  <footer class="page-drawing-footer"><div><p id="page-drawing-hint">${surface} 위를 드래그해 그리세요.</p><p class="page-drawing-status" role="status" aria-live="polite"></p></div><button type="button" data-drawing-action="download" disabled>PNG 내려받기</button></footer>
   <div class="page-drawing-confirm" hidden><div role="alertdialog" aria-modal="true" aria-labelledby="page-drawing-confirm-title" aria-describedby="page-drawing-confirm-text"><h3 id="page-drawing-confirm-title">그리기를 닫을까요?</h3><p id="page-drawing-confirm-text">저장하지 않은 그림은 사라집니다.</p><div><button type="button" data-drawing-action="keep-editing">계속 그리기</button><button type="button" class="page-drawing-discard" data-drawing-action="discard">저장하지 않고 닫기</button></div></div></div>`;
- dialog.querySelector('.page-drawing-name').textContent = title;
+ dialog.querySelector('.page-drawing-name').textContent = drawingTitle;
  const find = selector => dialog.querySelector(selector);
  const stage = find('.page-drawing-stage'), canvas = find('canvas'), status = find('.page-drawing-status');
  const hint = find('#page-drawing-hint'), confirm = find('.page-drawing-confirm');
  const sizeInput = find('[data-drawing-size]'), colorInput = find('[data-drawing-color]');
- let image, model, initialItems = '', history = [], future = [];
+ let image, imageWidth, imageHeight, model, initialItems = '', history = [], future = [];
  let activeTool = 'pen', activeColor = '#ef4444', activeSticker = '⭐';
  const sizes = {pen:4, highlighter:24, eraser:14, rectangle:4, ellipse:4, arrow:4, sticker:52};
  let gesture = null, preview = null, dirty = false, saving = false, disposed = false, animation = 0;
@@ -94,8 +108,8 @@ export async function openPageDrawing({imageUrl, annotations, title = '페이지
  function resizeCanvas() {
   if (!model || disposed) return;
   const width = Math.max(1, stage.clientWidth - 32), height = Math.max(1, stage.clientHeight - 32);
-  const scale = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-  const cssWidth = image.naturalWidth * scale, cssHeight = image.naturalHeight * scale;
+  const scale = Math.min(width / imageWidth, height / imageHeight);
+  const cssWidth = imageWidth * scale, cssHeight = imageHeight * scale;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   canvas.style.width = `${cssWidth}px`; canvas.style.height = `${cssHeight}px`;
   canvas.width = Math.max(1, Math.round(cssWidth * dpr)); canvas.height = Math.max(1, Math.round(cssHeight * dpr));
@@ -128,7 +142,7 @@ export async function openPageDrawing({imageUrl, annotations, title = '페이지
   find('[data-drawing-size-label]').textContent = type === 'sticker' || type === 'eraser' ? '크기' : '굵기';
   sizeInput.setAttribute('aria-label', find('[data-drawing-size-label]').textContent);
   find('[data-drawing-size-value]').textContent = sizes[type];
-  hint.textContent = type === 'sticker' ? '스티커를 고르고 이미지에서 원하는 위치를 누르세요.' : type === 'eraser' ? '그린 선이나 도형, 스티커를 누르거나 문질러 지우세요.' : type === 'rectangle' || type === 'ellipse' || type === 'arrow' ? '이미지 위를 드래그해 도형을 그리세요.' : '이미지 위를 드래그해 그리세요.';
+  hint.textContent = type === 'sticker' ? `스티커를 고르고 ${surface}에서 원하는 위치를 누르세요.` : type === 'eraser' ? '그린 선이나 도형, 스티커를 누르거나 문질러 지우세요.' : type === 'rectangle' || type === 'ellipse' || type === 'arrow' ? `${surface} 위를 드래그해 도형을 그리세요.` : `${surface} 위를 드래그해 그리세요.`;
   refresh(); resizeCanvas();
  }
  function setColor(color) {
@@ -180,6 +194,7 @@ export async function openPageDrawing({imageUrl, annotations, title = '페이지
   observer.disconnect(); cancelAnimationFrame(animation);
   window.removeEventListener('beforeunload', beforeUnload);
   window.removeEventListener('resize', resizeCanvas);
+  if (isBlank && image) { image.width = 0; image.height = 0; }
   dialog.close(); dialog.remove(); currentDialog = null;
   if (previousFocus?.isConnected) previousFocus.focus({preventScroll:true});
   resolveClosed(saved);
@@ -194,8 +209,8 @@ export async function openPageDrawing({imageUrl, annotations, title = '페이지
  async function exportDrawing() {
   const result = structuredClone(validatePageAnnotations(model));
   const output = document.createElement('canvas');
-  if (image.naturalWidth * image.naturalHeight > 32000000 || image.naturalWidth > 16384 || image.naturalHeight > 16384) throw Error('이미지가 너무 커서 저장하지 못했습니다. 작은 이미지로 다시 시도해 주세요.');
-  output.width = image.naturalWidth; output.height = image.naturalHeight;
+  if (imageWidth * imageHeight > 32000000 || imageWidth > 16384 || imageHeight > 16384) throw Error('이미지가 너무 커서 저장하지 못했습니다. 작은 이미지로 다시 시도해 주세요.');
+  output.width = imageWidth; output.height = imageHeight;
   try {
    const ctx = output.getContext('2d');
    if (!ctx) throw Error('그림 이미지를 만들지 못했습니다. 다시 시도해 주세요.');
@@ -210,7 +225,7 @@ export async function openPageDrawing({imageUrl, annotations, title = '페이지
   endGesture(false); saving = true; refresh(); message('PNG 파일을 만드는 중…');
   try {
    const {blob} = await exportDrawing(), url = URL.createObjectURL(blob), anchor = document.createElement('a');
-   anchor.href = url; anchor.download = `${String(title).replace(/[\\/:*?"<>|]/g, '_').slice(0, 100)}-그림.png`;
+   anchor.href = url; anchor.download = `${String(drawingTitle).replace(/[\\/:*?"<>|]/g, '_').slice(0, 100)}-그림.png`;
    document.body.append(anchor); anchor.click(); anchor.remove();
    setTimeout(() => URL.revokeObjectURL(url), 10000);
    message('PNG 파일을 내려받았습니다. 기록에 남기려면 그림 저장을 눌러 주세요.');
@@ -299,16 +314,17 @@ export async function openPageDrawing({imageUrl, annotations, title = '페이지
  refresh(); observer.observe(stage);
  window.addEventListener('resize', resizeCanvas);
  window.addEventListener('beforeunload', beforeUnload);
- loadImage(imageUrl).then(loaded => {
-  if (disposed) return;
-  image = loaded; model = normalizePageAnnotations(annotations, image.naturalWidth, image.naturalHeight);
+ (isBlank ? Promise.resolve().then(createBlankImage) : loadImage(imageUrl)).then(loaded => {
+  if (disposed) { if (isBlank) { loaded.width = 0; loaded.height = 0; } return; }
+  image = loaded; imageWidth = loaded.naturalWidth || loaded.width; imageHeight = loaded.naturalHeight || loaded.height;
+  model = normalizePageAnnotations(annotations, imageWidth, imageHeight);
   initialItems = JSON.stringify(model.items);
   canvas.hidden = false; find('.page-drawing-loading').hidden = true; stage.setAttribute('aria-busy', 'false');
   refresh(); resizeCanvas(); canvas.focus({preventScroll:true});
  }).catch(error => {
   if (disposed) return;
-  stage.setAttribute('aria-busy', 'false'); find('.page-drawing-loading').textContent = '이미지를 열지 못했습니다.';
-  message(error?.message || '페이지 이미지를 열 수 없습니다.', true);
+  stage.setAttribute('aria-busy', 'false'); find('.page-drawing-loading').textContent = isBlank ? '그림판을 열지 못했습니다.' : '이미지를 열지 못했습니다.';
+  message(error?.message || (isBlank ? '그림판을 열 수 없습니다.' : '페이지 이미지를 열 수 없습니다.'), true);
  });
  return closed;
 }

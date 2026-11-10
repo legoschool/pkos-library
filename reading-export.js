@@ -5,7 +5,7 @@ import DOMPurify from './vendor/purify.js';
 import {zipSync,strToU8} from './vendor/fflate.js';
 import {esc,safeName} from './core.js';
 import {pagesOf,pageAssetIds,pageImageAssetId} from './document-pages-model.js';
-import {getPublisherStatus,configurePublisher,publishReadingBundle,listReadingShares,deleteReadingShare} from './reading-publish.js';
+import {getPublisherStatus,configurePublisher,publishReadingBundle,listReadingShares,deleteReadingShare,createPublisherConnection,CONNECT_ORIGINS} from './reading-publish.js';
 import {scanNotes,scanText,maskText,hitKey} from './privacy-scan.js';
 import {AIDX_AREAS,AIDX_KINDS,aidxLinked,aidxPin,saveToAidx,postKey,getPost,aidxStatus,describeStatus} from './aidx-link.js';
 const ALLOW_KEY='pkos-privacy-allow-names',DEFAULT_TITLE='나의지식서재 · 함께 읽기';
@@ -80,7 +80,11 @@ export function showReadingExport({notes,assets,currentId,download,toast,focus='
   '<p data-reading-publish-help>포함 내용 미리보기로 확인한 뒤 게시할 수 있습니다.</p>'+
   '<details class="reading-publish-setup" data-reading-setup><summary>게시 설정 <span data-reading-configured></span></summary>'+
   '<label>게시 키<input type="password" data-reading-key autocomplete="off" spellcheck="false" placeholder="게시 키를 입력하세요"></label>'+
-  '<button type="button" data-reading="configure">설정 저장</button></details>'+
+  '<button type="button" data-reading="configure">설정 저장</button>'+
+  '<div class="reading-connect" data-reading-connect hidden><h4>다른 기기에서도 게시하기</h4><p class="hint">게시 키를 옮겨 적지 않고, 연결 주소를 다른 기기나 다른 기록장 주소에서 열면 그 브라우저도 게시할 수 있어요. 주소는 한 시간 안에 한 번만 쓸 수 있고, 받은 사람도 게시할 수 있게 되니 본인 기기에서만 여세요.</p>'+
+  '<label>열 기록장 주소<select data-reading-connect-origin>'+CONNECT_ORIGINS.map(([o,name])=>'<option value="'+o+'">'+esc(name)+'</option>').join('')+'</select></label>'+
+  '<div class="reading-actions"><button type="button" data-reading="make-connection">연결 주소 만들기</button></div>'+
+  '<div data-reading-connect-result hidden><label>연결 주소<input data-reading-connect-url readonly aria-label="게시 연결 주소"></label><div class="reading-actions"><button type="button" data-reading="copy-connection">연결 주소 복사</button></div><p class="hint" data-reading-connect-expiry></p></div></div></details>'+
   '<div class="reading-publish-target"><p data-reading-target-label>새 주소로 게시합니다.</p><button type="button" data-reading="new-share" hidden>새 주소로 게시</button></div>'+
   '<div class="reading-actions"><button type="button" class="primary" data-reading="publish" disabled>웹에 게시하기</button></div>'+
   '<div class="reading-publish-result" data-reading-result hidden><label>게시된 주소<input data-reading-url readonly aria-label="게시된 문서 주소"></label>'+
@@ -121,6 +125,7 @@ export function showReadingExport({notes,assets,currentId,download,toast,focus='
   find('[data-reading=configure]').disabled=!!busy||!find('[data-reading-key]').value.trim();
   find('[data-reading=refresh-shares]').disabled=!!busy||!configured;
   find('[data-reading-configured]').textContent=configured?'· 연결됨':'· 연결 필요';
+  find('[data-reading-connect]').hidden=!configured;find('[data-reading=make-connection]').textContent=busy==='connection'?'만드는 중…':'연결 주소 만들기';
   find('[data-reading-publish-help]').textContent=!bundle?'포함 내용 미리보기로 확인한 뒤 게시할 수 있습니다.':!ok?'개인정보 검사에서 남은 항목을 정리하면 게시할 수 있습니다.':!configured?'게시 설정에 키를 연결하면 웹에 게시할 수 있습니다.':'미리보기의 내용을 확인했다면 아래 버튼으로 게시하세요.';
   const target=shares.find(share=>share.id===targetId)||lastPublished;
   find('[data-reading-target-label]').textContent=targetId?'「'+(target?.title||'선택한 문서')+'」의 같은 주소를 갱신합니다.':'새 주소로 게시합니다.';
@@ -309,6 +314,19 @@ export function showReadingExport({notes,assets,currentId,download,toast,focus='
   });
   if(configured&&find('[data-reading-manager]').open)await refreshShares();
  }
+ async function makeConnection(){
+  if(!configured)return;
+  await work('connection',async()=>{
+   const result=await createPublisherConnection(find('[data-reading-connect-origin]').value);if(closed)return;
+   find('[data-reading-connect-url]').value=result.url;find('[data-reading-connect-result]').hidden=false;
+   const until=new Date(result.expiresAt);find('[data-reading-connect-expiry]').textContent=Number.isNaN(until.getTime())?'한 시간 안에 한 번만 쓸 수 있어요.':until.toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit'})+'까지, 한 번만 쓸 수 있어요.';
+   status('연결 주소를 만들었습니다. 게시할 기기에서 열어 주세요.');
+  });
+ }
+ async function copyConnection(){
+  const input=find('[data-reading-connect-url]');if(!input.value)return;
+  try{await navigator.clipboard.writeText(input.value);status('연결 주소를 복사했습니다.');}catch{input.focus();input.select();status('주소를 선택했습니다. 복사해 주세요.');}
+ }
  async function publish(){
   if(!bundle||!configured)return;
   await work('publish',async()=>{
@@ -359,6 +377,8 @@ export function showReadingExport({notes,assets,currentId,download,toast,focus='
   const button=e.target.closest('[data-reading]'),action=button?.dataset.reading;if(action==='close'){close();return;}if(busy)return;
   if(action==='preview')void preview();
   if(action==='configure')void configure();
+  if(action==='make-connection')void makeConnection();
+  if(action==='copy-connection')void copyConnection();
   if(action==='publish')void publish();
   if(action==='copy-url')void copyUrl();
   if(action==='refresh-shares')void refreshShares();
@@ -381,6 +401,7 @@ export function showReadingExport({notes,assets,currentId,download,toast,focus='
  if(focus==='aidx'&&linked&&selected.size)void preview().then(()=>{if(!closed)find('#reading-aidx-heading')?.closest('section')?.scrollIntoView({block:'start'});});
  void Promise.resolve().then(()=>getPublisherStatus()).then(result=>{
   if(closed)return;configured=!!result.configured;find('[data-reading-setup]').open=!configured;
+  const here=CONNECT_ORIGINS.find(([o])=>o===location.origin);find('[data-reading-connect-origin]').value=here?here[0]:CONNECT_ORIGINS[0][0];
   shareStatus(configured?'새로 고침하여 게시한 문서를 확인하세요.':'게시 설정을 먼저 연결하세요.');syncControls();
  }).catch(error=>{if(!closed){find('[data-reading-setup]').open=true;status(error.message||'게시 설정을 확인하지 못했습니다.',true);syncControls();}});
 }

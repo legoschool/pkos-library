@@ -9,12 +9,12 @@ const ID='a'.repeat(32),VERSION='b'.repeat(32),NEXT='c'.repeat(32),KEY='fictiona
 const CLOCK=Date.parse('2026-10-13T12:00:00Z'),path=(id=ID,version=VERSION)=>`reading-shares/${id}/${version}.zip`,manifestPath=(id=ID)=>`reading-shares/${id}/manifest.json`;
 function fixture(){
  const rows=new Map(),calls=[],state={uploadOptions:null},env={BLOB_READ_WRITE_TOKEN:'isolated-fake-storage-token',PKOS_PUBLISH_KEY_SHA256:createHash('sha256').update(KEY).digest('hex')};
- const add=(pathname,body='PK-test-archive',overrides={})=>{const data=Buffer.from(body);rows.set(pathname,{pathname,data,size:data.length,contentType:pathname.endsWith('.json')?'application/json':'application/zip',uploadedAt:new Date(CLOCK),...overrides});};
+ const add=(pathname,body='PK-test-archive',overrides={})=>{const data=Buffer.from(body);rows.set(pathname,{pathname,data,size:data.length,contentType:pathname.endsWith('.json')?'application/json':'application/zip',uploadedAt:new Date(CLOCK),etag:'"'+createHash('sha256').update(data).digest('hex')+'"',...overrides});};
  const missing=()=>Object.assign(new Error('upstream private secret must not leak'),{name:'BlobNotFoundError'});
  const blob={
   async get(key,options){calls.push({op:'get',key,options});const row=rows.get(key);return row?{statusCode:200,blob:row,stream:new Blob([row.data]).stream()}:null;},
   async head(key){calls.push({op:'head',key});const row=rows.get(key);if(!row)throw missing();return row;},
-  async put(key,body,options){calls.push({op:'put',key,options});add(key,body,{contentType:options.contentType});return rows.get(key);},
+  async put(key,body,options){calls.push({op:'put',key,options});if(options.ifMatch&&rows.get(key)?.etag!==options.ifMatch)throw Object.assign(new Error('conditional write conflict'),{name:'BlobPreconditionFailedError'});if(options.allowOverwrite===false&&rows.has(key))throw Error('already exists');add(key,body,{contentType:options.contentType});return rows.get(key);},
   async del(keys){calls.push({op:'del',keys});for(const key of Array.isArray(keys)?keys:[keys])rows.delete(key);},
   async list({prefix,limit,cursor}){calls.push({op:'list',prefix});const found=[...rows.values()].filter(row=>row.pathname.startsWith(prefix)).sort((a,b)=>a.pathname.localeCompare(b.pathname)),start=Number(cursor||0);return {blobs:found.slice(start,start+limit),hasMore:start+limit<found.length,cursor:String(start+limit)};}
  };
@@ -140,4 +140,32 @@ test('oversized request JSON and malformed stored manifests fail without disclos
  const f=fixture();assert.equal((await f.publish({title:'x'.repeat(70000)})).status,413);
  f.add(manifestPath(),JSON.stringify({schema:1,id:ID,version:VERSION,path:'private/another-file',title:'bad',size:1,updatedAt:new Date(CLOCK).toISOString()}));
  assert.equal((await f.request('?id='+ID)).status,502);assert.equal((await f.request('?id='+ID+'&op=archive')).status,502);
+});
+
+// 게시 연결 주소(2026-11-10): 게시 키가 있는 브라우저가 만든 한 번용 주소로 다른 브라우저에 게시 권한을 옮긴다
+test('publisher connection links are owner-only, single use, origin bound and expire',async()=>{
+ const GH='https://legoschool.github.io',f=fixture(),claim='C'.repeat(43),other='D'.repeat(43);
+ const make=(origin=GH,authorized=true)=>f.request('?op=create-connection',{method:'POST',authorized,body:{origin}});
+ const call=(op,code,claimId=claim,origin=GH)=>f.request('?op='+op,{method:'POST',body:{code,claimId},headers:{Origin:origin}});
+ assert.equal((await make(GH,false)).status,401);
+ assert.equal((await make('https://evil.invalid')).status,400);
+ const made=await make();assert.equal(made.status,200);const {url,expiresAt}=await made.json();
+ assert.match(url,/^https:\/\/legoschool\.github\.io\/pkos-library\/publisher-connect\.html#code=[A-Za-z0-9_-]{43}$/);assert.equal(expiresAt,CLOCK+60*60*1000);
+ const code=new URL(url).hash.slice(6);
+ const stored=[...f.rows.keys()].find(k=>k.startsWith('publisher-connections/'));assert.ok(stored&&!stored.includes(code),'only a hash of the code is used as the storage name');
+ assert.equal((await call('connect',code,claim,SHARE_BASE_URL)).status,403,'link opened on the other library address');
+ assert.equal((await call('finish-connection',code)).status,409,'finish before connect');
+ const first=await call('connect',code);assert.equal(first.status,200);assert.deepEqual(await first.json(),{key:KEY});
+ assert.deepEqual(await (await call('connect',code)).json(),{key:KEY},'same browser can retry a lost response');
+ assert.equal((await call('connect',code,other)).status,409,'another browser cannot reuse the claimed link');
+ assert.deepEqual(await (await call('finish-connection',code)).json(),{finished:true});
+ assert.equal((await call('connect',code)).status,409,'used link cannot connect again');
+ assert.ok(!f.rows.get(stored).data.toString().includes(KEY),'key is erased from storage once used');
+ const late=await make();const lateCode=new URL((await late.json()).url).hash.slice(6);
+ const g=fixture();for(const [k,v] of f.rows)g.rows.set(k,v);
+ const expired=createReadingShareService({blob:g.blob,handleUpload:async()=>({}),env:f.env,now:()=>CLOCK+61*60*1000});
+ const r=await expired(new Request(SHARE_BASE_URL+'/api/reading-shares?op=connect',{method:'POST',headers:{Origin:GH,'Content-Type':'application/json'},body:JSON.stringify({code:lateCode,claimId:claim})}));
+ assert.equal(r.status,410,'expired link');
+ f.env.PKOS_PUBLISH_KEY_SHA256=createHash('sha256').update('changed-publisher-key-for-isolated-tests').digest('hex');
+ const changed=await make(GH,false);assert.equal(changed.status,401);
 });

@@ -1,4 +1,4 @@
-import {createHash,timingSafeEqual} from 'node:crypto';
+import {createHash,timingSafeEqual,randomBytes} from 'node:crypto';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 
@@ -8,6 +8,7 @@ export const SHARE_BASE_URL='https://pkos-library.vercel.app';
 const PREFIX='reading-shares/', ID=/^[a-f0-9]{32}$/, MAX_OBJECTS=1000, LIST_SIZE=20;
 const ORIGINS=new Set([SHARE_BASE_URL,'https://legoschool.github.io']);
 const DAY=24*60*60*1000;
+const CONNECTION_PREFIX='publisher-connections/', CONNECTION_LIFETIME=60*60*1000, CONNECTION_TOKEN=/^[A-Za-z0-9_-]{43}$/;
 class ShareError extends Error{constructor(status,message){super(message);this.status=status;}}
 const fail=(status,message)=>{throw new ShareError(status,message);};
 const validId=value=>typeof value==='string'&&ID.test(value);
@@ -27,9 +28,11 @@ async function limitedText(stream,limit){
 // transitions can be tested without credentials or an external Blob store.
 export function createReadingShareService({blob,handleUpload,env=process.env,now=Date.now}){
  const configured=()=>/^[a-fA-F0-9]{64}$/.test(env.PKOS_PUBLISH_KEY_SHA256||'')&&!!env.BLOB_READ_WRITE_TOKEN;
+ const validOwnerKey=token=>typeof token==='string'&&/^[A-Za-z0-9_-]{32,256}$/.test(token)&&timingSafeEqual(createHash('sha256').update(token).digest(),Buffer.from(env.PKOS_PUBLISH_KEY_SHA256,'hex'));
  const auth=request=>{
   const token=/^Bearer ([A-Za-z0-9_-]{32,256})$/.exec(request.headers.get('authorization')||'')?.[1];
-  if(!token||!timingSafeEqual(createHash('sha256').update(token).digest(),Buffer.from(env.PKOS_PUBLISH_KEY_SHA256,'hex')))fail(401,'게시 설정을 연결한 뒤 다시 시도해 주세요.');
+  if(!validOwnerKey(token))fail(401,'게시 설정을 연결한 뒤 다시 시도해 주세요.');
+  return token;
  };
  const identify=id=>{if(!validId(id))fail(400,'공유 주소가 올바르지 않습니다.');};
  const identifyVersion=(id,version)=>{identify(id);identify(version);};
@@ -68,6 +71,22 @@ export function createReadingShareService({blob,handleUpload,env=process.env,now
   if(!value||typeof value!=='object'||Array.isArray(value))fail(400,'요청 내용이 올바르지 않습니다.');
   return value;
  }
+ async function readConnection(pathname){
+  let result;try{result=await blob.get(pathname,readOptions);}catch(error){if(missing(error))fail(404,'연결 주소를 찾을 수 없습니다. 새 연결 주소를 이용해 주세요.');throw error;}
+  if(!result)fail(404,'연결 주소를 찾을 수 없습니다. 새 연결 주소를 이용해 주세요.');
+  if(result.statusCode!==200||result.blob?.size>8192||typeof result.blob?.etag!=='string'||!result.blob.etag||result.blob.etag.length>256)fail(502,'연결 정보를 확인하지 못했습니다. 새 연결 주소를 이용해 주세요.');
+  let connection;try{connection=JSON.parse(await limitedText(result.stream,8192));}catch(error){if(error instanceof ShareError)throw error;fail(502,'연결 정보를 확인하지 못했습니다. 새 연결 주소를 이용해 주세요.');}
+  if(!connection||!Number.isSafeInteger(connection.expiresAt))fail(502,'연결 정보를 확인하지 못했습니다. 새 연결 주소를 이용해 주세요.');
+  return {connection,etag:result.blob.etag};
+ }
+ function checkConnection(connection,origin){
+  if(connection.expiresAt<=now())fail(410,'연결 주소가 만료되었습니다. 새 연결 주소를 이용해 주세요.');
+  if(!['pending','claimed'].includes(connection.state))fail(409,'이미 사용한 연결 주소입니다. 새 연결 주소를 이용해 주세요.');
+  if(connection.origin!==origin)fail(403,'이 연결 주소는 다른 서재 주소용입니다. 처음 받은 주소에서 열어 주세요.');
+  if(!validOwnerKey(connection.key))fail(410,'게시 설정이 변경되었습니다. 새 연결 주소를 이용해 주세요.');
+ }
+ const matchingClaim=(connection,claimHash)=>typeof connection.claimHash==='string'&&/^[a-f0-9]{64}$/.test(connection.claimHash)&&timingSafeEqual(Buffer.from(connection.claimHash,'hex'),Buffer.from(claimHash,'hex'));
+ const claimConflict=error=>error?.name==='BlobPreconditionFailedError'||error?.status===412||error?.statusCode===412;
  async function cleanOrphans(rows){
   let removed=0;const manifests=new Map();
   for(const row of rows){
@@ -87,6 +106,38 @@ export function createReadingShareService({blob,handleUpload,env=process.env,now
    if(request.method==='OPTIONS'){headers.set('Access-Control-Allow-Methods','GET, POST, DELETE, OPTIONS');headers.set('Access-Control-Allow-Headers','Authorization, Content-Type');return new Response(null,{status:204,headers});}
    if(!configured())fail(503,'웹 공유 서비스를 준비하고 있습니다. 잠시 뒤 다시 시도해 주세요.');
    const url=new URL(request.url),op=url.searchParams.get('op')||'',id=url.searchParams.get('id');
+   if(request.method==='POST'&&op==='create-connection'){
+    const key=auth(request),body=await readJson(request);
+    if(!ORIGINS.has(body.origin))fail(400,'연결할 서재 주소가 올바르지 않습니다.');
+    const code=randomBytes(32).toString('base64url'),pathname=CONNECTION_PREFIX+createHash('sha256').update(code).digest('hex')+'.json',expiresAt=now()+CONNECTION_LIFETIME;
+    await blob.put(pathname,JSON.stringify({key,origin:body.origin,expiresAt,state:'pending'}),{access:'private',contentType:'application/json',addRandomSuffix:false,allowOverwrite:false,cacheControlMaxAge:60});
+    const basePath=body.origin==='https://legoschool.github.io'?'/pkos-library/':'/';
+    return json({url:body.origin+basePath+'publisher-connect.html#code='+code,expiresAt});
+   }
+   if(request.method==='POST'&&['connect','finish-connection'].includes(op)){
+    if(!origin||!ORIGINS.has(origin))fail(403,'연결 주소를 사용할 서재에서 열어 주세요.');
+    const body=await readJson(request);
+    if(typeof body.code!=='string'||!CONNECTION_TOKEN.test(body.code)||typeof body.claimId!=='string'||!CONNECTION_TOKEN.test(body.claimId))fail(400,'연결 주소가 올바르지 않습니다.');
+    const pathname=CONNECTION_PREFIX+createHash('sha256').update(body.code).digest('hex')+'.json',claimHash=createHash('sha256').update(body.claimId).digest('hex');
+    const {connection,etag}=await readConnection(pathname);checkConnection(connection,origin);
+    if(connection.state==='claimed'&&!matchingClaim(connection,claimHash))fail(409,'다른 브라우저에서 사용한 연결 주소입니다. 새 연결 주소를 이용해 주세요.');
+    if(op==='finish-connection'&&connection.state!=='claimed')fail(409,'연결을 먼저 완료한 뒤 다시 시도해 주세요.');
+    if(op==='connect'&&connection.state==='claimed')return json({key:connection.key});
+    try{
+     // Claim first; only the same browser nonce can retry a lost response.
+     // The browser acknowledges durable local storage before the key is erased.
+     const value=op==='connect'?{...connection,state:'claimed',claimHash}:{state:'used',expiresAt:connection.expiresAt};
+     await blob.put(pathname,JSON.stringify(value),{access:'private',contentType:'application/json',addRandomSuffix:false,allowOverwrite:true,ifMatch:etag,cacheControlMaxAge:60});
+    }catch(error){
+     if(!claimConflict(error))throw error;
+     if(op==='connect'){
+      const current=await readConnection(pathname);checkConnection(current.connection,origin);
+      if(current.connection.state==='claimed'&&matchingClaim(current.connection,claimHash))return json({key:current.connection.key});
+     }
+     fail(409,'이미 사용한 연결 주소입니다. 새 연결 주소를 이용해 주세요.');
+    }
+    return json(op==='connect'?{key:connection.key}:{finished:true});
+   }
    if(request.method==='GET'){
     if(op==='status'){auth(request);return json({configured:true,maxArchiveBytes:MAX_ARCHIVE_BYTES,quotaBytes:SHARE_QUOTA_BYTES});}
     if(op==='list'){

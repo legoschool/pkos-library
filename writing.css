@@ -203,3 +203,6 @@
 .reading-export-dialog .reading-aidx-state.changes{background:#fdf3e7;border-color:#efd2a8}
 .reading-export-dialog .reading-aidx-state p{margin:0}
 .reading-export-dialog .reading-aidx-state blockquote{margin:8px 0 0;padding:6px 10px;border-left:3px solid #d08a2e;background:#fff;font-size:14px;white-space:pre-wrap}
+.reading-export-dialog .reading-connect{margin-top:14px;padding-top:12px;border-top:1px dashed #d8ddd4}
+.reading-export-dialog .reading-connect h4{margin:0 0 4px;font-size:15px}
+.reading-export-dialog .reading-connect select,.reading-export-dialog .reading-connect input{width:100%;padding:9px;border:1px solid #ccc;border-radius:8px;font:inherit}

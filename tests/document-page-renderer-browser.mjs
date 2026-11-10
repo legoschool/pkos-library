@@ -13,7 +13,7 @@ const b=await launchBrowser(),results=[],errors=[],external=[];
 const context=await b.newContext({viewport:{width:1440,height:1000}}),p=await context.newPage();
 p.on('pageerror',error=>errors.push(error.message));
 p.on('request',request=>{if(/^https?:/.test(request.url())&&!request.url().startsWith(BASE))external.push(request.url());});
-await context.addInitScript(()=>{if(window===top)localStorage.setItem('pkos-guide-v1','done');});
+await context.addInitScript(()=>{if(window===top)localStorage.setItem('pkos-guide-v1','done'),localStorage.setItem('pkos-folder-guide-v1','done');});
 async function check(name,fn){try{await fn();results.push({name,pass:true});console.log('OK',name);}catch(error){results.push({name,pass:false,error:error.stack});throw error;}}
 const render=async(name,buffer,options={})=>p.evaluate(async({name,data,options})=>{
  const {renderDocumentPages}=await import('./document-page-renderer.js'),controller=new AbortController(),pages=[],progress=[];let active=0,maxActive=0;
