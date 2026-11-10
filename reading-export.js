@@ -6,6 +6,13 @@ import {zipSync,strToU8} from './vendor/fflate.js';
 import {esc,safeName} from './core.js';
 import {pagesOf,pageAssetIds,pageImageAssetId} from './document-pages-model.js';
 import {getPublisherStatus,configurePublisher,publishReadingBundle,listReadingShares,deleteReadingShare} from './reading-publish.js';
+import {scanNotes,scanText,maskText,hitKey} from './privacy-scan.js';
+import {AIDX_AREAS,AIDX_KINDS,aidxLinked,aidxPin,saveToAidx,postKey,getPost,aidxStatus,describeStatus} from './aidx-link.js';
+const ALLOW_KEY='pkos-privacy-allow-names',DEFAULT_TITLE='나의지식서재 · 함께 읽기';
+const isPicture=a=>/^image\//.test(a?.type||'')||/\.(png|jpe?g|gif|webp|bmp|heic)$/i.test(a?.name||'');
+function allowNames(){try{const v=JSON.parse(localStorage.getItem(ALLOW_KEY)||'[]');return Array.isArray(v)?v:[];}catch{return [];}}
+function addAllowName(name){try{localStorage.setItem(ALLOW_KEY,JSON.stringify([...new Set([...allowNames(),name.replace(/\s+/g,'')])]));}catch{}}
+const plain=md=>String(md||'').replace(/```[\s\S]*?```/g,' ').replace(/!\[[^\]]*\]\([^)]*\)/g,' ').replace(/\[([^\]]*)\]\([^)]*\)/g,'$1').replace(/\[\[([^\]|]+)(?:\|([^\]]*))?\]\]/g,(_,a,b)=>b||a).replace(/<[^>]+>/g,' ').replace(/(^|\s)\*\*(\S(?:[^*]*?\S)?)\*\*(?=\s|$|[.,!?])/g,'$1$2').replace(/^\s*(?:#{1,6}\s|>\s?|[-+*]\s)/gm,'').replace(/[_`~|]/g,'').replace(/\s+/g,' ').trim();
 export async function buildReadingBundle(notes,assets,{attachmentIds=[],metadata=false,title='나의지식서재 · 함께 읽기'}={}){
  if(!notes.length||notes.length>50)throw Error('기록은 1개부터 50개까지 고르세요.');
  if(notes.reduce((n,r)=>n+r.body.length,0)>2000000)throw Error('한 묶음의 본문은 200만 글자까지입니다.');
@@ -43,10 +50,14 @@ export async function buildReadingBundle(notes,assets,{attachmentIds=[],metadata
  files['index.html']=strToU8(html);files['읽어주세요.txt']=strToU8('압축을 풀고 index.html을 여세요. attachments 폴더가 있으면 함께 보관하세요.\n이 묶음은 선택한 글과 첨부를 읽는 용도입니다. 앱 전체 백업이나 접근 제한 기능은 아닙니다.\n인터넷에 자동 게시하지 않았습니다.\n');
  return {html,files};
 }
-export function showReadingExport({notes,assets,currentId,download,toast}){
+// focus: 'aidx' 이면 바로 미리보기·검사를 하고 ai-dx 칸을 보여 준다(기록 메뉴 「ai-dx 지도에 올리기」)
+export function showReadingExport({notes,assets,currentId,download,toast,focus=''}){
  notes=notes.filter(n=>!n.deleted).sort((a,b)=>b.updated.localeCompare(a.updated));
  const selected=new Set(currentId&&notes.some(n=>n.id===currentId)?[currentId]:[]),included=new Set();
  let bundle=null,urls=[],busy='',closed=false,configured=false,shares=[],sharesLoaded=false,targetId='',lastPublished=null;
+ // 개인정보 검사: copies 는 이번 게시본에만 쓰는 가린 사본(기록장 원문은 그대로), kept 는 이대로 두기로 한 항목
+ let copies=new Map(),report=null,scanned=new Map(),groups=new Map(),kept=new Set(),maskedCount=0,photosOk=false,sentBundle=null,maskedKeys=new Set(),applied=new Set();
+ const linked=aidxLinked(),touched=new Set(),META='__share-meta';
  const d=document.createElement('dialog');d.className='reading-export-dialog';d.setAttribute('aria-labelledby','reading-export-title');
  d.innerHTML='<header><h2 id="reading-export-title">웹으로 공유하기</h2><button type="button" data-reading="close">닫기 ×</button></header>'+
   '<p class="reading-audience">링크를 아는 사람은 누구나 읽을 수 있습니다. 선택한 내용만 게시됩니다.</p>'+
@@ -57,6 +68,14 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
   '<p class="hint">저장된 글을 사용합니다. 고르지 않은 기록·원본 위치·휴지통·앱의 저장 정보는 포함하지 않습니다. 본문에 직접 적은 내용과 링크는 포함됩니다. 최대 50개 기록·첨부 50MB까지입니다.</p>'+
   '<div class="reading-actions"><button type="button" data-reading="preview">포함 내용 미리보기</button></div>'+
   '<p data-reading-status role="status" aria-live="polite"></p><iframe title="공유할 웹문서 미리보기" sandbox="allow-same-origin" hidden></iframe>'+
+  '<section class="reading-privacy" data-reading-privacy hidden aria-labelledby="reading-privacy-heading"><h3 id="reading-privacy-heading">개인정보 검사</h3>'+
+  '<p data-privacy-summary role="status" aria-live="polite"></p><div data-privacy-list></div>'+
+  '<label class="reading-check" data-privacy-photo hidden><input type="checkbox" data-privacy-photo-ok><span data-privacy-photo-text></span></label>'+
+  '<div class="reading-actions" data-privacy-actions hidden><button type="button" class="primary" data-reading="privacy-apply">고른 곳 가리고 다시 미리보기</button></div>'+
+  '<details data-privacy-kept hidden><summary></summary><div data-privacy-kept-list></div></details>'+
+  '<p class="hint">체크한 곳은 가리고, 체크를 푼 곳은 이대로 둡니다. 가린 내용은 이번 게시본에만 들어가고 기록장 원문은 바뀌지 않아요. 성을 빼고 부른 이름(민준이)과 사진 속 얼굴은 찾지 못하니 미리보기에서 한 번 더 봐 주세요.</p></section>'+
+  '<nav class="reading-dest" data-reading-dest hidden aria-label="올릴 곳 고르기"><p>어디에 올릴까요?</p><div class="reading-actions">'+
+  '<button type="button" data-reading="goto" data-goto="reading-publish-heading">웹 공유 주소</button>'+(linked?'<button type="button" data-reading="goto" data-goto="reading-aidx-heading">ai-dx 지도</button>':'')+'<button type="button" data-reading="goto" data-goto="reading-zip-heading">ZIP 파일</button></div></nav>'+
   '<section class="reading-publish-panel" aria-labelledby="reading-publish-heading"><h3 id="reading-publish-heading">웹에 게시</h3>'+
   '<p data-reading-publish-help>포함 내용 미리보기로 확인한 뒤 게시할 수 있습니다.</p>'+
   '<details class="reading-publish-setup" data-reading-setup><summary>게시 설정 <span data-reading-configured></span></summary>'+
@@ -68,6 +87,15 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
   '<div class="reading-actions"><button type="button" data-reading="copy-url">주소 복사</button><a class="quiet" data-reading-open target="_blank" rel="noopener noreferrer">열기 ↗</a></div></div>'+
   '<details class="reading-share-manager" data-reading-manager><summary>내가 게시한 문서</summary><div class="reading-actions"><button type="button" data-reading="refresh-shares">목록 새로 고침</button></div>'+
   '<p data-reading-shares-status role="status"></p><div data-reading-shares></div></details></section>'+
+  (linked?'<section class="reading-aidx-panel" aria-labelledby="reading-aidx-heading"><h3 id="reading-aidx-heading">ai-dx 지도에 올리기</h3>'+
+  '<p>임시저장한 글은 공개되지 않아요. ai-dx 화면 「기록장」에서 확인하고 승인해야 지도에 올라가요. 같은 기록을 고쳐 다시 임시저장하면 같은 글의 다음 판이 돼요. 글만 보내고 첨부와 사진은 보내지 않아요.</p>'+
+  '<div class="reading-aidx-state" data-aidx-state hidden><p data-aidx-state-text></p><blockquote data-aidx-note hidden></blockquote></div>'+
+  '<label>올릴 칸<select data-aidx-area><option value="">칸을 고르세요</option>'+AIDX_AREAS.map(([zone,list])=>'<optgroup label="'+esc(zone)+'">'+list.map(([id,name])=>'<option value="'+id+'">'+esc(name)+'</option>').join('')+'</optgroup>').join('')+'</select></label>'+
+  '<label>종류<select data-aidx-kind>'+AIDX_KINDS.map(([id,name])=>'<option value="'+id+'">'+esc(name)+'</option>').join('')+'</select></label>'+
+  '<label>카드 제목<input data-aidx-title maxlength="120"></label>'+
+  '<label>카드 소개 (한두 문장)<textarea data-aidx-desc rows="3" maxlength="300"></textarea></label>'+
+  '<label data-aidx-pin-row>ai-dx 강사 비밀번호<input type="password" data-aidx-pin autocomplete="current-password"></label>'+
+  '<div class="reading-actions"><button type="button" class="primary" data-reading="aidx-send" disabled>ai-dx에 임시저장</button><a class="quiet" data-aidx-review target="_blank" rel="noopener" hidden>ai-dx에서 확인하기 ↗</a></div></section>':'')+
   '<section class="reading-zip-panel" aria-labelledby="reading-zip-heading"><h3 id="reading-zip-heading">파일로 내보내기</h3><p>인터넷 없이 열거나 보관할 수 있는 ZIP 파일입니다.</p>'+
   '<button type="button" data-reading="download" disabled>웹문서 ZIP 저장</button></section>';
  document.body.append(d);d.showModal();
@@ -82,12 +110,18 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
   find('[data-reading=preview]').disabled=!!busy||!selected.size||selected.size>50;
   find('[data-reading=preview]').textContent=busy==='preview'?'미리보기 만드는 중…':'포함 내용 미리보기';
   find('[data-reading=download]').disabled=!!busy||!bundle;
-  find('[data-reading=publish]').disabled=!!busy||!bundle||!configured;
+  const ok=privacyReady();
+  find('[data-reading=publish]').disabled=!!busy||!bundle||!configured||!ok;
   find('[data-reading=publish]').textContent=busy==='publish'?'게시하는 중…':targetId?'선택한 주소 갱신':'웹에 게시하기';
+  if(linked){
+   find('[data-reading=aidx-send]').disabled=!!busy||!bundle||!ok||bundle===sentBundle||!find('[data-aidx-area]').value||!find('[data-aidx-title]').value.trim()||!(aidxPin()||find('[data-aidx-pin]').value);
+   find('[data-reading=aidx-send]').textContent=busy==='aidx'?'임시저장하는 중…':bundle&&bundle===sentBundle?'임시저장했어요':getPost(selKey())?'고친 판 임시저장':'ai-dx에 임시저장';
+   find('[data-aidx-pin-row]').hidden=!!aidxPin();
+  }
   find('[data-reading=configure]').disabled=!!busy||!find('[data-reading-key]').value.trim();
   find('[data-reading=refresh-shares]').disabled=!!busy||!configured;
   find('[data-reading-configured]').textContent=configured?'· 연결됨':'· 연결 필요';
-  find('[data-reading-publish-help]').textContent=!bundle?'포함 내용 미리보기로 확인한 뒤 게시할 수 있습니다.':!configured?'게시 설정에 키를 연결하면 웹에 게시할 수 있습니다.':'미리보기의 내용을 확인했다면 아래 버튼으로 게시하세요.';
+  find('[data-reading-publish-help]').textContent=!bundle?'포함 내용 미리보기로 확인한 뒤 게시할 수 있습니다.':!ok?'개인정보 검사에서 남은 항목을 정리하면 게시할 수 있습니다.':!configured?'게시 설정에 키를 연결하면 웹에 게시할 수 있습니다.':'미리보기의 내용을 확인했다면 아래 버튼으로 게시하세요.';
   const target=shares.find(share=>share.id===targetId)||lastPublished;
   find('[data-reading-target-label]').textContent=targetId?'「'+(target?.title||'선택한 문서')+'」의 같은 주소를 갱신합니다.':'새 주소로 게시합니다.';
   find('[data-reading=new-share]').hidden=!targetId;
@@ -97,7 +131,100 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
  }
  function revokePreview(){urls.forEach(URL.revokeObjectURL);urls=[];}
  function reset(){
-  bundle=null;revokePreview();const frame=find('iframe');frame.hidden=true;frame.removeAttribute('srcdoc');status('');syncControls();
+  bundle=null;report=null;photosOk=false;revokePreview();const frame=find('iframe');frame.hidden=true;frame.removeAttribute('srcdoc');status('');
+  find('[data-reading-privacy]').hidden=true;find('[data-reading-dest]').hidden=true;find('[data-privacy-photo-ok]').checked=false;syncControls();
+ }
+ // 게시본에 들어갈 기록: 가린 사본이 있으면 그것을 쓴다
+ const selKey=()=>postKey(selected);
+ const chosenNotes=()=>notes.filter(n=>selected.has(n.id)).map(n=>copies.has(n.id)?{...n,...copies.get(n.id)}:n);
+ const pictures=()=>assets.filter(a=>included.has(a.id)&&isPicture(a)).length;
+ const pending=()=>[...groups.values()].filter(g=>!kept.has(g.key));
+ function privacyReady(){return !!bundle&&!!report&&!pending().length&&(!pictures()||photosOk);}
+ function scan(chosen,metadata){
+  scanned=new Map(chosen.map(n=>[n.id,{title:n.title||'',body:n.body||'',extra:databaseMarkdown(n.database,{notes:chosen,noteId:n.id}),...(metadata?{folder:n.folder||'',tags:(n.tags||[]).join(' ')}:{})}]));
+  // 공유 제목과 ai-dx 카드 제목·소개도 밖으로 나가므로 함께 검사한다(META)
+  scanned.set(META,{share:title(),...(linked?{cardTitle:find('[data-aidx-title]').value,cardDesc:find('[data-aidx-desc]').value}:{})});
+  report=scanNotes([...chosen.map(n=>({id:n.id,title:n.title||'제목 없음',fields:scanned.get(n.id)})),{id:META,title:linked?'공유 제목·카드 소개':'공유 제목',fields:scanned.get(META)}],{allowNames:allowNames()});
+  groups=new Map();
+  for(const r of report)for(const [field,hits] of Object.entries(r.fields))for(const h of hits){
+   const key=hitKey(h),g=groups.get(key)||{key,kind:h.kind,original:h.original,masked:h.masked,context:h.context,count:0,records:new Set(),maskable:false};
+   g.count++;g.records.add(r.title);if(field!=='extra')g.maskable=true;groups.set(key,g);
+  }
+ }
+ function paintPrivacy(){
+  const rows=pending(),done=[...groups.values()].filter(g=>kept.has(g.key)),n=pictures();
+  find('[data-reading-privacy]').hidden=false;find('[data-reading-dest]').hidden=false;
+  find('[data-privacy-summary]').textContent=!groups.size?'개인정보로 보이는 내용을 찾지 못했어요.':!rows.length?'찾은 '+groups.size+'가지는 모두 이대로 두기로 했어요.':'개인정보로 보이는 내용 '+rows.length+'가지를 찾았어요. 가릴 곳을 고른 뒤 아래 단추를 눌러 주세요.';
+  const where=g=>g.count+'곳 · '+[...g.records].slice(0,2).map(t=>'「'+esc(t)+'」').join(', ')+(g.records.size>2?' 외 '+(g.records.size-2)+'개':'');
+  find('[data-privacy-list]').innerHTML=rows.map(g=>'<div class="privacy-row"><label class="reading-check"><input type="checkbox" data-privacy-key="'+esc(g.key)+'" '+(g.maskable?'checked':'disabled')+'><span><b>'+esc(g.kind)+'</b> '+esc(g.original)+' → '+esc(g.masked)+' <small>'+where(g)+'</small><small class="privacy-context">'+esc(g.context)+'</small>'+(g.maskable?'':'<small class="error">표 안 내용이라 여기서 가릴 수 없어요. 기록장에서 고치거나, 체크를 푼 채로 두면 이대로 올라가요.</small>')+'</span></label>'+(g.kind==='이름'?'<button type="button" class="quiet" data-reading="privacy-allow" data-privacy-name="'+esc(g.original)+'">공개해도 되는 이름</button>':'')+'</div>').join('');
+  find('[data-privacy-actions]').hidden=!rows.length;
+  const keptBox=find('[data-privacy-kept]');keptBox.hidden=!done.length;keptBox.querySelector('summary').textContent='이대로 두기로 한 항목 '+done.length+'가지';
+  find('[data-privacy-kept-list]').innerHTML=done.map(g=>'<div class="privacy-row"><span><b>'+esc(g.kind)+'</b> '+esc(g.original)+' <small>'+where(g)+'</small></span><button type="button" class="quiet" data-reading="privacy-unkeep" data-privacy-key="'+esc(g.key)+'">다시 고르기</button></div>').join('');
+  find('[data-privacy-photo]').hidden=!n;find('[data-privacy-photo-text]').textContent='사진 '+n+'장이 들어 있어요. 얼굴, 이름표, 명찰이 보이지 않는 것을 확인했어요.';
+  syncControls();
+ }
+ function applyPrivacy(){
+  const boxes=[...d.querySelectorAll('[data-privacy-list] [data-privacy-key]')],mask=new Set(boxes.filter(b=>b.checked&&!b.disabled).map(b=>b.dataset.privacyKey));
+  boxes.filter(b=>!b.checked).forEach(b=>kept.add(b.dataset.privacyKey));
+  maskKeys(mask);
+  return preview();
+ }
+ // 고른 항목을 가린 사본(copies)과 공유 제목·카드 칸에 적용한다
+ function maskKeys(mask){
+  if(mask.size)for(const r of report){
+   const f=scanned.get(r.id),next={};
+   if(r.id===META){
+    const put=(field,selector)=>{const el=find(selector);if(el&&field in f)el.value=maskText(f[field],r.fields[field]||[],mask);};
+    put('share','[data-reading-title]');put('cardTitle','[data-aidx-title]');put('cardDesc','[data-aidx-desc]');continue;
+   }
+   for(const field of ['title','body','folder','tags'])if(field in f)next[field]=maskText(f[field],r.fields[field]||[],mask);
+   if('tags' in next)next.tags=next.tags.split(' ').filter(Boolean);
+   copies.set(r.id,{...(copies.get(r.id)||{}),...next});
+  }
+  maskedCount+=mask.size;mask.forEach(k=>maskedKeys.add(k));
+ }
+ // 전에 임시저장한 글이면 그때 정한 가림·이대로 두기를 다시 적용한다(새로 나온 항목만 고르면 된다). 다시 만들어야 하면 true
+ function applyEarlier(){
+  const key=selKey(),post=linked?getPost(key):null;
+  if(!post?.decisions||applied.has(key))return false;
+  applied.add(key);
+  (post.decisions.kept||[]).forEach(k=>{if(groups.has(k))kept.add(k);});
+  const auto=new Set((post.decisions.masked||[]).filter(k=>groups.has(k)&&groups.get(k).maskable));
+  if(!auto.size)return false;
+  maskKeys(auto);status('지난번 임시저장 때 정한 대로 '+auto.size+'가지를 가렸어요.');return true;
+ }
+ async function refreshAidxState(){
+  if(!linked)return;
+  const box=find('[data-aidx-state]'),post=getPost(selKey()),key=selKey();
+  if(!post){box.hidden=true;return;}
+  box.hidden=false;find('[data-aidx-state-text]').textContent='이 기록은 ai-dx에 임시저장한 적이 있어요('+post.rev+'판). 상태를 확인하는 중…';find('[data-aidx-note]').hidden=true;
+  try{
+   const st=await aidxStatus(post);if(closed||selKey()!==key)return;
+   find('[data-aidx-state-text]').textContent=st?describeStatus(st):'상태를 확인하지 못했어요. 인터넷 연결을 확인해 주세요.';
+   const note=find('[data-aidx-note]');note.hidden=!(st?.review==='changes'&&st.review_note);note.textContent=st?.review_note?'보완 요청: '+st.review_note:'';
+   box.classList.toggle('changes',st?.review==='changes');
+  }catch{if(!closed)find('[data-aidx-state-text]').textContent='상태를 확인하지 못했어요. 인터넷 연결을 확인해 주세요.';}
+ }
+ async function sendAidx(){
+  if(!linked||!privacyReady()||bundle===sentBundle)return;
+  await work('aidx',async()=>{
+   const chosen=chosenNotes(),cardTitle=find('[data-aidx-title]').value.trim(),sent=bundle;
+   // 미리보기 뒤에 카드 제목·소개를 고쳤을 수 있으니 보내기 직전에 한 번 더 본다
+   const names=[...groups.values()].filter(g=>g.kind==='이름').map(g=>g.original);
+   const late=scanText(cardTitle+'\n'+find('[data-aidx-desc]').value,{allowNames:allowNames(),knownNames:names}).hits.filter(h=>!kept.has(hitKey(h)));
+   if(late.length)throw Error('카드 제목·소개에 개인정보로 보이는 내용이 있어요('+[...new Set(late.map(h=>h.kind+' '+h.original))].join(', ')+'). 고치거나 「포함 내용 미리보기」로 다시 검사해 주세요.');
+   // ai-dx에는 글만 보낸다: 첨부를 빼고 게시본을 다시 만든다(가린 사본 그대로)
+   const page=await buildReadingBundle(chosen,assets,{attachmentIds:[],metadata:find('[data-reading-meta]').checked,title:cardTitle});
+   const markdown=chosen.map(n=>'# '+(n.title||'제목 없음')+'\n\n'+n.body+databaseMarkdown(n.database,{notes:chosen,noteId:n.id})).join('\n\n---\n\n');
+   const privacy={checkedAt:new Date().toISOString(),found:maskedCount+groups.size,masked:maskedCount,kept:[...groups.values()].filter(g=>kept.has(g.key)).map(g=>({kind:g.kind,original:g.original,count:g.count})),pictures:pictures(),picturesChecked:photosOk};
+   const earlier=getPost(selKey())?.decisions||{},decisions={masked:[...new Set([...(earlier.masked||[]),...maskedKeys])],kept:[...new Set([...(earlier.kept||[]),...kept])]};
+   const result=await saveToAidx(selKey(),{pin:aidxPin()||find('[data-aidx-pin]').value,area:find('[data-aidx-area]').value,kind:find('[data-aidx-kind]').value,title:cardTitle,desc:find('[data-aidx-desc]').value.trim(),html:page.html,markdown,records:chosen.map(n=>({title:n.title||'제목 없음'})),privacy,decisions});
+   if(closed)return;
+   sentBundle=sent;find('[data-aidx-pin]').value='';
+   const link=find('[data-aidx-review]');link.href=result.reviewUrl;link.hidden=false;
+   status((result.renewed?'ai-dx에서 지운 글이라 새 글로 ':'')+'임시저장했어요('+result.rev+'판). 아직 공개되지 않았고, ai-dx 화면 「기록장」에서 확인하고 승인하면 지도에 올라가요.');toast?.('ai-dx에 임시저장했어요.');
+   void refreshAidxState();
+  });
  }
  function paintNotes(){
   const q=find('[data-reading-search]').value.trim().toLowerCase(),matching=notes.filter(n=>n.title.toLowerCase().includes(q));
@@ -133,9 +260,25 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
  async function preview(){
   await work('preview',async()=>{
    status('미리보기를 만들고 있습니다.');
+   await build();
+   if(!closed&&applyEarlier())await build(true);
+  });
+  void refreshAidxState();
+ }
+ async function build(keepStatus=false){
    const nextUrls=[];
    try{
-    const result=await buildReadingBundle(notes.filter(n=>selected.has(n.id)),assets,{attachmentIds:[...included],metadata:find('[data-reading-meta]').checked,title:title()});if(closed)return;
+    const chosen=chosenNotes(),metadata=find('[data-reading-meta]').checked;
+    const result=await buildReadingBundle(chosen,assets,{attachmentIds:[...included],metadata,title:title()});if(closed)return;
+    // 카드 칸·제목·소개: 전에 임시저장한 글이면 그때 값, 아니면 (가린) 기록으로 채운다. 손으로 고친 뒤에는 그대로 두고, 아래 검사에 함께 넣는다
+    if(linked){
+     const post=getPost(selKey()),cardTitle=find('[data-aidx-title]'),desc=find('[data-aidx-desc]');
+     if(post&&!touched.has('area')&&post.area)find('[data-aidx-area]').value=post.area;
+     if(post&&!touched.has('kind')&&post.kind)find('[data-aidx-kind]').value=post.kind;
+     if(!touched.has('title'))cardTitle.value=post?.title||(title()!==DEFAULT_TITLE?title():chosen[0]?.title||'');
+     if(!touched.has('desc')){const text=plain(chosen[0]?.body);desc.value=post?.desc||(text.length>120?text.slice(0,120)+'…':text);}
+    }
+    scan(chosen,metadata);
     const doc=new DOMParser().parseFromString(result.html,'text/html');
     for(const [path,data] of Object.entries(result.files)){
      if(!path.startsWith('attachments/'))continue;
@@ -143,9 +286,9 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
      const encoded=path.split('/').map(encodeURIComponent).join('/');doc.querySelectorAll('[src],[href]').forEach(el=>{for(const attr of ['src','href'])if(el.getAttribute(attr)===encoded)el.setAttribute(attr,url);});
     }
     revokePreview();urls=nextUrls;bundle=result;const frame=find('iframe');frame.srcdoc='<!doctype html>'+doc.documentElement.outerHTML;frame.hidden=false;
-    status('포함된 내용을 확인한 뒤 웹에 게시하거나 ZIP으로 저장하세요.');
+    paintPrivacy();
+    if(!keepStatus)status(pending().length?'개인정보 검사에서 찾은 항목을 정리한 뒤 올릴 곳을 고르세요.':'포함된 내용을 확인한 뒤 웹에 게시하거나 ai-dx 지도, ZIP으로 보내세요.');
    }catch(error){nextUrls.forEach(URL.revokeObjectURL);throw error;}
-  });
  }
  async function refreshShares(){
   if(!configured){shareStatus('게시 설정을 먼저 연결하세요.');return;}
@@ -203,6 +346,13 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
   if(e.target.dataset.readingNote){e.target.checked?selected.add(e.target.dataset.readingNote):selected.delete(e.target.dataset.readingNote);reset();paintAssets();}
   if(e.target.dataset.readingAsset){e.target.checked?included.add(e.target.dataset.readingAsset):included.delete(e.target.dataset.readingAsset);reset();paintAssets();}
   if(e.target.matches('[data-reading-meta]'))reset();
+  if(e.target.matches('[data-privacy-photo-ok]')){photosOk=e.target.checked;syncControls();}
+  if(e.target.matches('[data-aidx-area]'))touched.add('area');if(e.target.matches('[data-aidx-kind]'))touched.add('kind');
+  if(e.target.matches('[data-aidx-area],[data-aidx-kind]'))syncControls();
+ });
+ d.addEventListener('input',e=>{
+  if(e.target.matches('[data-aidx-title]'))touched.add('title');if(e.target.matches('[data-aidx-desc]'))touched.add('desc');
+  if(e.target.matches('[data-aidx-title],[data-aidx-pin],[data-aidx-desc]'))syncControls();
  });
  find('[data-reading-manager]').addEventListener('toggle',()=>{if(find('[data-reading-manager]').open&&!sharesLoaded&&!busy)void refreshShares();});
  d.addEventListener('click',e=>{
@@ -217,12 +367,18 @@ export function showReadingExport({notes,assets,currentId,download,toast}){
    const share=shares.find(item=>item.id===button.dataset.readingShareId);if(!share)return;targetId=share.id;paintShares();status('현재 고른 내용을 미리보기한 뒤 이 주소를 갱신하세요.');find('[data-reading=publish]').focus();
   }
   if(action==='delete-share')void removeShare(button.dataset.readingShareId);
+  if(action==='privacy-apply')void applyPrivacy();
+  if(action==='privacy-allow'){addAllowName(button.dataset.privacyName);void preview();}
+  if(action==='privacy-unkeep'){kept.delete(button.dataset.privacyKey);paintPrivacy();}
+  if(action==='goto'){const target=find('#'+button.dataset.goto)?.closest('section');target?.scrollIntoView({behavior:'smooth',block:'start'});target?.querySelector('select,button:not([disabled]),input')?.focus({preventScroll:true});}
+  if(action==='aidx-send')void sendAidx();
   if(action==='download'&&bundle){
    try{download(new Blob([zipSync(bundle.files)],{type:'application/zip'}),safeName(title()||'PKOS-함께읽기')+'.zip');toast?.('선택한 기록의 웹문서를 저장했습니다. 압축을 풀고 index.html을 여세요.');}
    catch(error){status(error.message||'ZIP 파일을 만들지 못했습니다.',true);}
   }
  });
  paintNotes();paintAssets();shareStatus('게시 설정을 연결한 뒤 문서를 확인할 수 있습니다.');
+ if(focus==='aidx'&&linked&&selected.size)void preview().then(()=>{if(!closed)find('#reading-aidx-heading')?.closest('section')?.scrollIntoView({block:'start'});});
  void Promise.resolve().then(()=>getPublisherStatus()).then(result=>{
   if(closed)return;configured=!!result.configured;find('[data-reading-setup]').open=!configured;
   shareStatus(configured?'새로 고침하여 게시한 문서를 확인하세요.':'게시 설정을 먼저 연결하세요.');syncControls();

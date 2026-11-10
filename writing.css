@@ -185,3 +185,21 @@
  .reading-export-dialog iframe{height:420px}
  .reading-export-dialog .reading-publish-target p{flex-basis:100%}
 }
+/* 게시 전 개인정보 검사와 ai-dx 대기 목록 (2026-11-10) */
+.reading-export-dialog .reading-privacy,.reading-export-dialog .reading-aidx-panel{margin-top:18px;padding:14px 16px;border:1px solid #dce1d8;border-radius:12px;background:#fafbf8}
+.reading-export-dialog .reading-privacy h3,.reading-export-dialog .reading-aidx-panel h3{margin:0 0 6px;font-size:17px}
+.reading-export-dialog .privacy-row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:6px 0;border-bottom:1px solid #eceee8}
+.reading-export-dialog .privacy-row:last-child{border-bottom:0}
+.reading-export-dialog .privacy-row .reading-check{align-items:flex-start;padding:2px 0}
+.reading-export-dialog .privacy-row span small{display:block;color:#657468;font-size:13px;overflow-wrap:anywhere}
+.reading-export-dialog .privacy-row button{flex-shrink:0;min-height:36px;font-size:13px}
+.reading-export-dialog .reading-dest{margin-top:14px}
+.reading-export-dialog .reading-dest p{margin:0;font-weight:600}
+.reading-export-dialog .reading-dest .reading-actions{margin-top:8px}
+.reading-export-dialog .reading-aidx-panel label{display:flex;flex-direction:column;gap:6px;margin:10px 0}
+.reading-export-dialog .reading-aidx-panel select,.reading-export-dialog .reading-aidx-panel input,.reading-export-dialog .reading-aidx-panel textarea{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;font:inherit}
+@media(max-width:500px){.reading-export-dialog .privacy-row{flex-direction:column}}
+.reading-export-dialog .reading-aidx-state{margin:10px 0;padding:10px 12px;border-radius:10px;background:#eef4ee;border:1px solid #cfe0cf}
+.reading-export-dialog .reading-aidx-state.changes{background:#fdf3e7;border-color:#efd2a8}
+.reading-export-dialog .reading-aidx-state p{margin:0}
+.reading-export-dialog .reading-aidx-state blockquote{margin:8px 0 0;padding:6px 10px;border-left:3px solid #d08a2e;background:#fff;font-size:14px;white-space:pre-wrap}
