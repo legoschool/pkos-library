@@ -79,3 +79,19 @@ test('저장해 둔 색인에 남은 민감한 이름은 열 때 안쪽까지 �
  const c=cleanRaw(raw);assert.deepEqual(c.names,['05_수업','수업.pptx']);assert.deepEqual(c.parent,[-1,0]);
  assert.equal(buildModel(raw).N,2);
 });
+
+test('2차 보강: 비밀 복구 코드·학생 평가는 빼고, 코드 파일 recovery.js는 남긴다',()=>{
+ for(const n of ['github-recovery-codes.txt','깃허브 리커버리.txt','2022. 실과 2학기 교과학습 발달상황.hwpx'])assert.ok(SENSITIVE.test(n),n);
+ for(const n of ['recovery.js','RecoveryProjects','교육 레시피.gdoc'])assert.ok(!SENSITIVE.test(n),n);
+});
+
+test('2차 보강: 맨 위 낱개 파일과 위 폴더가 못 정한 파일',()=>{
+ const names=['3. 함께 성장하는 교육 레시피.gdoc','과일 샌드 레시피.gdoc','홍길동2.pdf','공유받은 페이지.html','수정의견_K7.gdoc'];
+ const mm=buildModel({names,parent:names.map(()=>-1),dir:names.map(()=>'0').join('')}),key=i=>CATS[mm.cat[i]].key+' '+mm.subNames[mm.sub[i]];
+ assert.deepEqual(names.map((_,i)=>key(i)),['05 낱개 파일','99 개인·생활','99 개인·생활','99 AI 대화·공유로 생긴 파일','05 낱개 파일']);
+ const raw={names:['05_수업','이것저것','미디어리터러시.hwp','메타버스 교실','수업.pptx','desktop.ini'],parent:[-1,0,1,0,3,0],dir:'110100'};
+ const m2=buildModel(raw),sub=name=>m2.subNames[m2.sub[m2.names.indexOf(name)]];
+ assert.equal(sub('미디어리터러시.hwp'),'03_정보·디지털 기초');
+ assert.equal(sub('수업.pptx'),'09_메타버스·AI 활용 수업');
+ assert.equal(m2.names.indexOf('desktop.ini'),-1);
+});

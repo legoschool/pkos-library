@@ -1,7 +1,7 @@
 // G 드라이브 이름 색인을 7판 분류로 나누고, 칸·소분류·주제별로 세고, 이름으로 찾는다.
 // 파일 내용은 열지 않는다. 입력은 {names, parent, dir}: parent[i]는 부모 번호(맨 위는 -1)이고
 // 부모 번호는 늘 자식보다 작다(폴더를 먼저 적고 안을 나중에 적는다).
-import {CATS,SUBS,TOP_RULES,LOOSE_RULES,TOPICS,SENSITIVE,SUB_FOLDER_FALLBACK} from './drive-map-rules.js';
+import {CATS,SUBS,TOP_RULES,LOOSE_RULES,TOPICS,SENSITIVE,SKIP_NAME,SUB_FOLDER_FALLBACK} from './drive-map-rules.js';
 
 const UNSET=-1;
 export const GOOGLE_EXT=/\.(gdoc|gsheet|gslides|gform|gdraw|gmap|gsite|gjam|gscript|gtable)$/i;
@@ -9,7 +9,7 @@ export const GOOGLE_EXT=/\.(gdoc|gsheet|gslides|gform|gdraw|gmap|gsite|gjam|gscr
 // 저장해 둔 색인에 나중에 민감하다고 정한 이름이 남아 있으면 그 이름과 안쪽을 통째로 뺀다(다시 훑지 않아도 바로 숨김).
 export function cleanRaw(raw){
  const n=raw.names.length,drop=new Uint8Array(n);let any=false;
- for(let i=0;i<n;i++){const p=raw.parent[i];if((p>=0&&drop[p])||SENSITIVE.test(raw.names[i])){drop[i]=1;any=true;}}
+ for(let i=0;i<n;i++){const p=raw.parent[i];if((p>=0&&drop[p])||SENSITIVE.test(raw.names[i])||SKIP_NAME.has(raw.names[i])){drop[i]=1;any=true;}}
  if(!any)return raw;
  const map=new Int32Array(n).fill(-1),names=[],parent=[],dir=[];
  for(let i=0;i<n;i++){if(drop[i])continue;map[i]=names.length;names.push(raw.names[i]);const p=raw.parent[i];parent.push(p>=0?map[p]:-1);dir.push(raw.dir[i]);}
@@ -49,7 +49,7 @@ export function buildModel(raw){
    if(hit){cat[i]=catIndex.get(hit[1]);sub[i]=hit[2]?subId(hit[2]):dict(hit[1],name,dir);}
    else{
     cat[i]=cat[p];sub[i]=sub[p];
-    if(sub[i]===UNSET&&(dir||depth[i]===1)&&depth[i]<=4)sub[i]=dict(CATS[cat[i]].key,name,dir);
+    if(sub[i]===UNSET&&(dir?depth[i]<=4:depth[i]<=6))sub[i]=dict(CATS[cat[i]].key,name,dir);
     if(sub[i]===UNSET&&dir&&depth[i]===1&&SUB_FOLDER_FALLBACK.has(CATS[cat[i]].key))sub[i]=subId(name);
    }
   }
