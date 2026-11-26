@@ -1,4 +1,5 @@
 import {syncFolderMirror} from './folder-mirror-files.js';
+import {pickerOptions} from './drive-map.js';
 
 const KEY='folder-mirror-v1';
 
@@ -104,7 +105,7 @@ export async function setupFolderMirror({db,demo,toast,flush}){
   let selected=false;
   connecting=true;refreshUI();
   try{
-   const parent=await window.showDirectoryPicker({mode:'readwrite',id:demo?'pkos-demo-mirror':'pkos-local-mirror'});
+   const parent=await window.showDirectoryPicker(pickerOptions({mode:'readwrite'},demo?'pkos-demo-mirror':'pkos-local-mirror'));
    if(!await flush())return false;
    await navigator.locks.request(lockName,async()=>{
     const connection=crypto.randomUUID(),folderName=(demo?'PKOS-체험기록-':'PKOS-기록-')+new Date().toISOString().slice(0,10)+'-'+connection.slice(0,8);

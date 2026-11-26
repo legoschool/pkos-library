@@ -44,7 +44,7 @@ let noteId,firstId,secondId;
 const title='직접 그리는 가상 수업 메모',body='직접 적어 둔 생각을 유지합니다.\n\n**마크다운**과 줄바꿈도 그대로 둡니다.';
 
 try{
- await page.goto(base);await page.locator('.welcome').waitFor();await action('new');
+ await page.goto(base+'#v=all');await page.locator('.welcome').waitFor();await action('new');
  await page.locator('#edit-title').fill(title);await page.locator('#edit-body').fill(body);
  noteId=(await waitState(s=>s.notes.some(n=>n.title===title&&n.body===body))).notes.find(n=>n.title===title).id;
  await check('canceling a blank drawing or discarding a changed drawing saves no PNG or drawing entry',async()=>{
@@ -97,7 +97,7 @@ try{
   const backup=await page.evaluate(async()=>{const {openStore}=await import('./store.js'),{validateBackup}=await import('./core.js');return validateBackup(await(await openStore(false)).backup());});
   const other=await browser.newContext({viewport:{width:1100,height:900}});await stubGoogle(other);await other.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});
   try{
-   const restored=await other.newPage();restored.on('pageerror',error=>errors.push(error.message));await restored.goto(base);await restored.locator('.welcome').waitFor();
+   const restored=await other.newPage();restored.on('pageerror',error=>errors.push(error.message));await restored.goto(base+'#v=all');await restored.locator('.welcome').waitFor();
    const roundtrip=await restored.evaluate(async backup=>{const {openStore}=await import('./store.js'),{validateBackup}=await import('./core.js'),db=await openStore(false);await db.mergeBackup(validateBackup(backup));return validateBackup(await db.backup());},backup);
    assert.deepEqual(JSON.parse(JSON.stringify(roundtrip.notes)),JSON.parse(JSON.stringify(backup.notes)));const refs=new Set(backup.notes.flatMap(n=>n.attachments));assert.deepEqual(summary(roundtrip.assets),summary(backup.assets.filter(a=>refs.has(a.id))));
    await restored.goto(base+'#n='+noteId);await restored.reload();await restored.locator('#drawings .drawing-card').first().waitFor();assert.equal(await restored.locator('#drawings .drawing-card').count(),2);

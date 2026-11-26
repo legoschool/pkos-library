@@ -79,7 +79,7 @@ async function reopen(file,mode,selector){
  await row.locator('[data-action="preview-html"]').click();await previewReady(selector);
 }
 try{
- await p.goto(base);await p.locator('.welcome').waitFor();
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();
  await check('reader drop immediately opens rendered HTML with inline CSS, embedded image and unchanged original download',async()=>{
   await drop([first]);await previewReady('#lesson-title');
   assert.equal(await frame().locator('#lesson-title').innerText(),'끌어 놓은 HTML 수업 자료');

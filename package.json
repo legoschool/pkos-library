@@ -8,7 +8,8 @@
     "test:tools": "node --test tests/workspace-models.test.mjs",
     "build:desktop": "node scripts/build-desktop-tools.mjs",
     "test:desktop": "node --test tests/database-engine.test.mjs",
-    "build:sharing": "node scripts/build-reading-publish.mjs"
+    "build:sharing": "node scripts/build-reading-publish.mjs",
+    "test:drive": "node --test tests/drive-map-model.test.mjs"
   },
   "dependencies": {
     "@aiden0z/pptx-renderer": "1.3.0",

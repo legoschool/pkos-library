@@ -14,7 +14,7 @@ const open=()=>action('appearance');
 const contrastRatio=(selector='#dialog footer .primary')=>p.locator(selector).evaluate(el=>{const s=getComputedStyle(el),lum=rgb=>rgb.match(/[\d.]+/g).slice(0,3).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4;}).reduce((a,v,i)=>a+v*[.2126,.7152,.0722][i],0);const a=lum(s.color),b=lum(s.backgroundColor);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05);});
 async function check(name,fn){await fn();checks.push(name);console.log('OK',name);}
 try{
- await p.goto(base);await p.locator('.welcome').waitFor();
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();
  await check('blue default and opaque colored icons across sidebar navigation',async()=>{
   assert.equal(await color(),'#2563eb');
   const icons=await p.locator('.sidebar nav .ui-icon').evaluateAll(items=>items.map(svg=>({name:svg.getAttribute('class'),opaque:[...svg.querySelectorAll('[fill]')].some(shape=>{const c=getComputedStyle(shape);return c.fill!=='none'&&c.fill!=='rgba(0, 0, 0, 0)'&&Number(c.fillOpacity)===1&&Number(c.opacity)===1;})})));
@@ -46,7 +46,7 @@ try{
   assert.equal(await p.evaluate(()=>JSON.parse(localStorage.getItem('pkos-appearance-v1')).color),'#ffdd00');
  });
  await check('preset selection and reset work while the open second tab follows the selected color',async()=>{
-  const other=await context.newPage();await other.goto(base);await other.locator('.topbar').waitFor();
+  const other=await context.newPage();await other.goto(base+'#v=all');await other.locator('.topbar').waitFor();
   await p.getByRole('button',{name:'주황',exact:true}).click();await other.waitForFunction(()=>document.documentElement.dataset.themeColor==='#c65d18');
   assert.ok(await contrastRatio('.nav-item.active')>=4.5);assert.ok(await contrastRatio('.theme-preview .tag')>=4.5);
   assert.equal(await p.getByRole('button',{name:'주황',exact:true}).getAttribute('aria-pressed'),'true');

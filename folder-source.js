@@ -1,4 +1,5 @@
 import {makeNote,parseMarkdown,uid,esc} from './core.js';
+import {pickerOptions} from './drive-map.js';
 const KEY='folder-source-v1',MAX=20*1024*1024,BUDGET=100*1024*1024;
 const hash=async bytes=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))].map(n=>n.toString(16).padStart(2,'0')).join('');
 export async function setupFolderSource({db,demo,toast,flush,changed}){
@@ -54,7 +55,7 @@ export async function setupFolderSource({db,demo,toast,flush,changed}){
  async function choose(){
   if(busy||!supported)return;let picked=false;
   try{
-   const handle=await window.showDirectoryPicker({mode:'read',id:demo?'pkos-demo-source':'pkos-source'});
+   const handle=await window.showDirectoryPicker(pickerOptions({mode:'read'},demo?'pkos-demo-source':'pkos-source'));
    busy=true;paint();await navigator.locks.request(lockName,async()=>{
     const old=await db.get('meta',KEY),same=old?.handle&&await handle.isSameEntry(old.handle);
     config=same?{...old,handle}:{id:KEY,handle,name:handle.name,connection:uid(),enabled:false};

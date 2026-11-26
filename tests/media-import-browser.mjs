@@ -31,7 +31,7 @@ function original(data,file){const asset=data.assets.find(a=>a.name===file.name)
 function assetSummary(assets){return assets.map(({data,...asset})=>({...asset,sha256:createHash('sha256').update(Buffer.from(data,'base64')).digest('hex')})).sort((a,b)=>a.id.localeCompare(b.id));}
 let photos,photoNoteId,draftNoteId,pptNoteId;
 try{
- await p.goto(base);await p.locator('.welcome').waitFor();
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();
  photos=await p.evaluate(()=>['#ca4d42','#386aa4'].map((fill,i)=>{const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const c=canvas.getContext('2d');c.fillStyle=fill;c.fillRect(0,0,640,360);c.fillStyle='#ffffff';c.font='40px sans-serif';c.fillText('Fictional photo '+(i+1),40,180);return {name:'가상 사진 '+(i+1)+'.png',mimeType:'image/png',data:canvas.toDataURL('image/png').split(',')[1]};}));
  photos=photos.map(f=>({...f,buffer:Buffer.from(f.data,'base64')}));
  await check('canceling the photo choice imports neither notes nor original files',async()=>{
@@ -154,7 +154,7 @@ try{
  await check('validated backup roundtrip preserves image-group order, mode and all original bytes',async()=>{
   const backup=await p.evaluate(async()=>{const {openStore}=await import('./store.js'),{validateBackup}=await import('./core.js');return validateBackup(await(await openStore(false)).backup());});
   const other=await browser.newContext({viewport:{width:1100,height:800}});await stubGoogle(other);await other.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});
-  try{const q=await other.newPage();q.on('pageerror',error=>errors.push(error.message));await q.goto(base);await q.locator('.welcome').waitFor();
+  try{const q=await other.newPage();q.on('pageerror',error=>errors.push(error.message));await q.goto(base+'#v=all');await q.locator('.welcome').waitFor();
    const restored=await q.evaluate(async backup=>{const {openStore}=await import('./store.js'),{validateBackup}=await import('./core.js'),db=await openStore(false);await db.mergeBackup(validateBackup(backup));return validateBackup(await db.backup());},backup);
    assert.deepEqual(JSON.parse(JSON.stringify(restored.notes)),JSON.parse(JSON.stringify(backup.notes)));
    // Existing backup import intentionally excludes orphaned assets detached from every note.

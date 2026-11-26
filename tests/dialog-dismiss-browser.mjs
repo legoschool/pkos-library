@@ -38,7 +38,7 @@ const check=async(name,run)=>{await run();checks.push(name);console.log('PASS',n
 const tool=async name=>{const button=page.locator(`[data-editor-tool="${name}"]`);if(!await button.isVisible())await action('editor-tools');await button.click();};
 
 try{
- await page.goto(base);await page.locator('.welcome').waitFor();
+ await page.goto(base+'#v=all');await page.locator('.welcome').waitFor();
  await check('installer is idempotent and backdrop click cancels once without activating underlying controls',async()=>{
   assert.equal(await page.evaluate(async()=>{const {installDialogBackdropDismiss}=await import('./dialog-dismiss.js');return installDialogBackdropDismiss()===installDialogBackdropDismiss();}),true);
   await page.evaluate(()=>{

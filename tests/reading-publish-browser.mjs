@@ -48,7 +48,7 @@ async function preview(){await control('preview').click();await p.waitForFunctio
 async function idle(){await p.waitForFunction(()=>document.querySelector('.reading-export-dialog')?.getAttribute('aria-busy')==='false');}
 async function showManager(){if(!await d().locator('[data-reading-manager]').evaluate(el=>el.open))await d().locator('[data-reading-manager]>summary').click();await idle();}
 try{
- await p.goto(base);await p.locator('.welcome').waitFor();
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();
  await p.evaluate(async()=>{
   const {openStore}=await import('./store.js'),{makeNote}=await import('./core.js'),db=await openStore(false);
   const first=makeNote({id:'publish-fixture-a',title:'가상 공유 자료',body:'# 선택한 본문\n\n이 글만 함께 읽습니다.\n\n[다른 기록](#note=private-fixture)\n\n<script>window.unwanted=1</script>',folder:'PRIVATE_FOLDER_MARKER',tags:['PRIVATE_TAG_MARKER'],folderSource:{path:'PRIVATE_SOURCE_PATH_MARKER'},attachments:['fixture-selected-file','fixture-private-file'],links:['private-fixture'],revision:1});

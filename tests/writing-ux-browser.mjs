@@ -19,7 +19,7 @@ async function tools(open){const button=p.locator('[data-action="editor-tools"]'
 async function sameDraft(){assert.equal(await p.locator('#edit-body').inputValue(),content);assert.equal(await p.evaluate(()=>document.querySelector('#edit-body')===window.originalBody),true);}
 async function singleScroll(){await frames();const info=await p.locator('#edit-body').evaluate(t=>({client:t.clientHeight,scroll:t.scrollHeight,outer:t.closest('.document').scrollHeight,view:t.closest('.document').clientHeight}));assert.ok(info.scroll<=info.client+2,JSON.stringify(info));assert.ok(info.outer>info.view);}
 try{
- await p.goto(base);await p.locator('.welcome').waitFor();await action('new');await p.locator('#edit-title').fill(title);await p.locator('#edit-body').fill(content);await frames();
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();await action('new');await p.locator('#edit-title').fill(title);await p.locator('#edit-body').fill(content);await frames();
  await p.locator('#edit-body').evaluate(el=>{window.originalBody=el;el.setSelectionRange(15,28);});
  await check('long editor uses a single document scrollbar with a sticky title and tools',async()=>{
   await singleScroll();const before=await p.locator('.editor-header').boundingBox();await p.locator('.document').evaluate(el=>el.scrollTop=800);await frames();const after=await p.locator('.editor-header').boundingBox();assert.ok(Math.abs(before.y-after.y)<2);await sameDraft();

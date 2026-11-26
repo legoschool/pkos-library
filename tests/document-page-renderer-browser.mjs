@@ -33,7 +33,7 @@ const render=async(name,buffer,options={})=>p.evaluate(async({name,data,options}
  }catch(error){return {error:{name:error.name,message:error.message},pages,progress,maxActive,frames:document.querySelectorAll('[data-document-page-renderer]').length};}
 },{name,data:buffer.toString('base64'),options});
 try{
- await p.goto(BASE);await p.locator('.welcome').waitFor();
+ await p.goto(BASE+'#v=all');await p.locator('.welcome').waitFor();
  await check('PDF exports every full page with text, painted pixels, PNG dimensions and sequential callbacks',async()=>{
   const r=await render('lesson.PDF',sourcePdf);assert.equal(r.error,undefined);assert.equal(r.result.count,2);assert.equal(r.pages.length,2);assert.equal(r.maxActive,1);
   assert.match(r.pages[0].text,/PKOS attachment test/);assert.match(r.pages[1].text,/한글 PDF 첨부 검사/);

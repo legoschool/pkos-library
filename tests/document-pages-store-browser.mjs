@@ -8,7 +8,7 @@ const context=await browser.newContext({serviceWorkers:'block'}),page=await cont
 await context.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});
 let checks=[];
 try{
- await page.goto(base);await page.locator('#app').waitFor();
+ await page.goto(base+'#v=all');await page.locator('#app').waitFor();
  checks=await page.evaluate(async()=>{
   const {openStore}=await import('./store.js'),{makeNote,validateBackup}=await import('./core.js');
   const db=await openStore(false),checks=[];

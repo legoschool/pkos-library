@@ -38,7 +38,7 @@ async function releaseMirror(){await page.evaluate(()=>{window.__releaseMirror?.
 async function deletePage(number){await card(number).locator('[data-action="page-delete"]').click();await action('ask-ok');}
 let originalFile,page20Path,page21Path;
 try{
- await page.goto(base);await page.locator('.welcome').waitFor();
+ await page.goto(base+'#v=all');await page.locator('.welcome').waitFor();
  await page.evaluate(async({noteId,sourceId})=>{
   const {openStore}=await import('./store.js'),{makeNote}=await import('./core.js'),db=await openStore(false);
   const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;

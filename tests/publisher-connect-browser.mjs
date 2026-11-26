@@ -21,7 +21,7 @@ try{
  const owner=await b.newContext({viewport:{width:1280,height:900},serviceWorkers:'block'});await mockApi(owner);
  await owner.addInitScript(k=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');localStorage.setItem('pkos-reading-publisher-v1',k);},KEY);
  const p=await owner.newPage();p.on('pageerror',e=>errors.push(e.message));
- await p.goto(base);await p.locator('.welcome').waitFor();await p.locator('[data-action=settings]:visible').first().click();await p.locator('#dialog [data-action=export-reading]').click();
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();await p.locator('[data-action=settings]:visible').first().click();await p.locator('#dialog [data-action=export-reading]').click();
  const d=p.locator('.reading-export-dialog');await p.waitForFunction(()=>document.querySelector('[data-reading-configured]')?.textContent.includes('연결됨'));
  await d.locator('[data-reading-setup] > summary').click();await d.locator('[data-reading-connect]').waitFor({state:'visible'});
  assert.equal(await d.locator('[data-reading-connect-origin]').inputValue(),'https://legoschool.github.io');

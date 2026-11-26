@@ -1,0 +1,19 @@
+{
+  "text": " This is a test of the personal knowledge notebook. We keep our documents and find them again.",
+  "chunks": [
+    {
+      "timestamp": [
+        0,
+        3
+      ],
+      "text": " This is a test of the personal knowledge notebook."
+    },
+    {
+      "timestamp": [
+        3,
+        6
+      ],
+      "text": " We keep our documents and find them again."
+    }
+  ]
+}

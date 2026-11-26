@@ -1,4 +1,5 @@
 import {validateBackup} from './core.js';
+import {pickerOptions} from './drive-map.js';
 const KEY='folder-backup-v1',MAX=80*1024*1024,INTERVAL=5*60*1000;
 const digest=async text=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))].map(b=>b.toString(16).padStart(2,'0')).join('');
 export async function setupFolderBackup({db,demo,toast,flush}){
@@ -67,7 +68,7 @@ export async function setupFolderBackup({db,demo,toast,flush}){
  async function choose(){
   if(busy||!supported)return;let connected=false;
   try{
-   const parent=await window.showDirectoryPicker({mode:'readwrite',id:demo?'pkos-demo-backup':'pkos-personal-backup'});
+   const parent=await window.showDirectoryPicker(pickerOptions({mode:'readwrite'},demo?'pkos-demo-backup':'pkos-personal-backup'));
    busy=true;refreshUI();
    await navigator.locks.request('pkos-folder-backup-'+name,async()=>{
    const folderName=(demo?'PKOS-체험백업-':'PKOS-자동백업-')+new Date().toISOString().slice(0,10)+'-'+crypto.randomUUID().slice(0,8);

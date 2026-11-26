@@ -65,7 +65,7 @@ let photos,firstId,draftId,draftBody='붙여 넣기 전에 적어 둔 생각\n\n
 const own=s=>s.notes.find(n=>n.id===draftId);
 
 try{
- await page.goto(base);await page.locator('.welcome').waitFor();
+ await page.goto(base+'#v=all');await page.locator('.welcome').waitFor();
  photos=await page.evaluate(()=>['#447cc3','#ca684d'].map((color,i)=>{const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;const ctx=canvas.getContext('2d');ctx.fillStyle=color;ctx.fillRect(0,0,640,360);ctx.fillStyle='#fff';ctx.font='36px sans-serif';ctx.fillText('Fictional clipboard '+(i+1),35,185);return{name:'클립보드 가상 사진 '+(i+1)+'.png',type:'image/png',data:canvas.toDataURL('image/png').split(',')[1]};}));
  await action('folder-mirror');await page.locator('[data-mirror-command="choose"]').click();await page.locator('[data-mirror-command="now"]:not([disabled])').waitFor();await page.locator('[data-mirror-close]').click();
  await check('synthetic multi-image paste directly creates one photo record with original PNG bytes and no choice dialog',async()=>{

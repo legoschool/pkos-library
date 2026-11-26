@@ -54,7 +54,7 @@ const savedPage=(s,id)=>s.notes[0].documentPages.find(p=>p.id===id);
 let pageOne,pageTwo,original,firstSaved;
 
 try{
- await page.goto(base);await page.locator('.welcome').waitFor();
+ await page.goto(base+'#v=all');await page.locator('.welcome').waitFor();
  await action('folder-mirror');await page.locator('[data-mirror-command="choose"]').click();
  await page.locator('[data-mirror-command="now"]:not([disabled])').waitFor();await page.locator('[data-mirror-close]').click();
  await check('synthetic PPTX uploads as three independent pages and unchanged original bytes',async()=>{
@@ -165,7 +165,7 @@ try{
   const backup=await page.evaluate(async()=>{const {openStore}=await import('./store.js'),{validateBackup}=await import('./core.js');return validateBackup(await(await openStore(false)).backup());});
   const other=await browser.newContext({viewport:{width:1280,height:900}});
   try{
-   await other.addInitScript(()=>localStorage.setItem('pkos-guide-v1','done'));const restored=await other.newPage();restored.on('pageerror',e=>errors.push(e.message));await restored.goto(base);await restored.locator('.welcome').waitFor();
+   await other.addInitScript(()=>localStorage.setItem('pkos-guide-v1','done'));const restored=await other.newPage();restored.on('pageerror',e=>errors.push(e.message));await restored.goto(base+'#v=all');await restored.locator('.welcome').waitFor();
    const roundtrip=await restored.evaluate(async backup=>{const {openStore}=await import('./store.js'),{validateBackup}=await import('./core.js'),db=await openStore(false);await db.mergeBackup(validateBackup(backup));return db.backup();},backup);
    assert.deepEqual(JSON.parse(JSON.stringify(roundtrip.notes)),JSON.parse(JSON.stringify(backup.notes)));assert.deepEqual(roundtrip.assets,backup.assets);
    await restored.reload();await restored.locator('.note-row').first().click();assert.equal(await restored.locator('[data-action="page-draw"]').count(),3);

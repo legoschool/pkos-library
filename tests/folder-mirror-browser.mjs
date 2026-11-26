@@ -102,7 +102,7 @@ let noteId,originalNotePath;
 const wav=Buffer.from('524946462800000057415645666d74201000000001000100401f0000803e000002001000646174610400000000000100','hex');
 const webm=Buffer.from([0x1a,0x45,0xdf,0xa3,0x9f,0x42,0x86,0x81,0x01,0x42,0xf7,0x81,0x01,0,1,2,250,255]);
 try{
- await page.goto(BASE);await page.locator('.welcome').waitFor();
+ await page.goto(BASE+'#v=all');await page.locator('.welcome').waitFor();
  await check('first connection flushes the draft and creates readable Markdown plus exact WAV/WebM bytes in a dedicated folder',async()=>{
   await action('new');await page.locator('#edit-title').fill('가상 강의 받아쓰기 시험');await page.locator('#edit-body').fill('첨부 전 임시 글');
   await action('attach');await page.locator('#file-input').setInputFiles([{name:'가상 녹음.wav',mimeType:'audio/wav',buffer:wav},{name:'가상 녹음.webm',mimeType:'audio/webm',buffer:webm}]);
@@ -192,7 +192,7 @@ try{
   await save('새로고침 후에도 같은 로컬 폴더에 저장합니다.');await mirrored('새로고침 후에도 같은 로컬 폴더에 저장합니다.');assert.equal(await page.evaluate(()=>window.mirrorPickerCalls),0);
  });
  await check('two tabs save the same committed snapshot without duplicate or conflicting copies',async()=>{
-  const second=await context.newPage();observe(second);await second.goto(BASE);await second.locator('.page-title').waitFor();await open();await open(second);await ready();await ready(second);const before=await state();
+  const second=await context.newPage();observe(second);await second.goto(BASE+'#v=all');await second.locator('.page-title').waitFor();await open();await open(second);await ready();await ready(second);const before=await state();
   await holdMirror();
   await Promise.all([command('now').click(),command('now',second).click()]);
   await page.waitForFunction(()=>document.querySelector('[data-mirror-command="now"]').disabled);
@@ -210,7 +210,7 @@ try{
  });
  await check('unsupported browsers offer a clear manual export fallback and disable folder selection',async()=>{
   const other=await browser.newContext({viewport:{width:1100,height:800},serviceWorkers:'block'});await other.addInitScript(()=>{localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');window.showDirectoryPicker=undefined;});await stubGoogle(other);
-  const q=await other.newPage();observe(q);await q.goto(BASE);await q.locator('.welcome').waitFor();await open(q);assert.equal(await command('choose',q).isDisabled(),true);assert.match(await modal(q).innerText(),/이 브라우저|지원하지/);assert.match(await modal(q).innerText(),/내보내기|묶음|Markdown/);await q.screenshot({path:path.join(out,'unsupported-browser.png')});await other.close();
+  const q=await other.newPage();observe(q);await q.goto(BASE+'#v=all');await q.locator('.welcome').waitFor();await open(q);assert.equal(await command('choose',q).isDisabled(),true);assert.match(await modal(q).innerText(),/이 브라우저|지원하지/);assert.match(await modal(q).innerText(),/내보내기|묶음|Markdown/);await q.screenshot({path:path.join(out,'unsupported-browser.png')});await other.close();
  });
  await check('no uncaught JavaScript exceptions occur throughout saving and recovery',async()=>assert.deepEqual(errors,[]));
 }catch(e){process.exitCode=1;console.error(e.stack||e);}

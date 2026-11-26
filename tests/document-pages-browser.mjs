@@ -28,7 +28,7 @@ async function finished(){await page.locator('[data-page-conversion="close"]:not
 async function drop(name,mime,buffer){await page.evaluate(({name,mime,bytes})=>{const transfer=new DataTransfer();transfer.items.add(new File([new Uint8Array(bytes)],name,{type:mime}));document.querySelector('.workspace').dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:transfer}));},{name,mime,bytes:[...buffer]});}
 async function check(name,fn){await fn();checks.push(name);console.log('OK',name);}
 try{
- await page.goto(base);await page.locator('.welcome').waitFor();
+ await page.goto(base+'#v=all');await page.locator('.welcome').waitFor();
  await click('folder-mirror');await page.locator('[data-mirror-command="choose"]').click();await page.locator('[data-mirror-command="now"]:not([disabled])').waitFor();await page.locator('[data-mirror-close]').click();
  let noteId,sourceId,pageOne,pageTwo;
  await check('PDF drop saves two complete PNG pages and exact original in connected folder',async()=>{

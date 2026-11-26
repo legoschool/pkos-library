@@ -17,7 +17,7 @@ try{
   return route.fulfill({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*'},body:JSON.stringify(out)});
  });
  const p=await context.newPage();p.on('pageerror',e=>errors.push(e.message));
- await p.goto(base);await p.locator('.welcome').waitFor();
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();
  await p.evaluate(async base64=>{
   const {openStore}=await import('./store.js'),{makeNote}=await import('./core.js'),db=await openStore(false);
   const a=makeNote({id:'pii-note',title:'3월 학급 기록',body:'작성자: 박서연\n\n연락처 010-2222-3333 으로 알려 주세요.\n\n오늘 박서연 선생님과 함께 발표를 준비했다.\n\n이운희 선생님 반 이야기.',attachments:['pii-photo'],revision:1});
@@ -90,9 +90,9 @@ try{
  checks.push('saving again updates the same post as revision 2 with its key');
  await d.locator('[data-reading=close]').click();
  await p.evaluate(()=>{localStorage.removeItem('pkos-aidx-link');localStorage.removeItem('pkos-aidx-site');});await context.clearCookies();
- const fresh=await context.newPage();await fresh.addInitScript(()=>{});await fresh.goto(base+'#aidx='+encodeURIComponent('http://127.0.0.1:5181'));await fresh.locator('.welcome, .page-title').first().waitFor();
+ const fresh=await context.newPage();await fresh.addInitScript(()=>{});await fresh.goto(base+'#aidx='+encodeURIComponent('http://127.0.0.1:5181'));await fresh.locator('.welcome, .page-title, .drive-map').first().waitFor();
  assert.deepEqual(await fresh.evaluate(()=>[localStorage.getItem('pkos-aidx-link'),localStorage.getItem('pkos-aidx-site'),location.hash.includes('aidx')]),['1','http://127.0.0.1:5181',false]);
- await fresh.goto(base+'#aidx='+encodeURIComponent('https://evil.example'));await fresh.locator('.welcome, .page-title').first().waitFor();
+ await fresh.goto(base+'#aidx='+encodeURIComponent('https://evil.example'));await fresh.locator('.welcome, .page-title, .drive-map').first().waitFor();
  assert.equal(await fresh.evaluate(()=>localStorage.getItem('pkos-aidx-site')),'http://127.0.0.1:5181');
  checks.push('opening from ai-dx (#aidx=…) turns the link on, remembers only allowed ai-dx addresses and removes the marker from the address');
  assert.deepEqual(errors,[]);console.log(JSON.stringify({checks,errors},null,2));

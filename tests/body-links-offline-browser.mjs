@@ -14,7 +14,7 @@ page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 const action=name=>page.locator(`[data-action="${name}"]:visible`).first().click();
 const first='https://example.org/offline-lesson',second='https://example.org/offline-notes';
 try{
- await page.goto(base);await page.locator('.welcome').waitFor();await action('new');
+ await page.goto(base+'#v=all');await page.locator('.welcome').waitFor();await action('new');
  await page.locator('#edit-title').fill('가상 오프라인 링크 기록');
  await page.locator('#edit-body').fill('오프라인에서도 주소를 보관합니다. '+first);
  await page.keyboard.press('Control+s');

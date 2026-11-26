@@ -12,7 +12,7 @@ try{
  p.on('pageerror',e=>errors.push(e.message));
  p.on('request',r=>{if(/^https?:/.test(r.url())&&!r.url().startsWith(process.env.PREVIEW_URL||'http://127.0.0.1:8793/'))external.push(r.url());});
  await p.addInitScript(()=>{if(window!==top)return;localStorage.setItem('pkos-guide-v1','done');localStorage.setItem('pkos-folder-guide-v1','done');});
- await p.goto(process.env.PREVIEW_URL||'http://127.0.0.1:8793/');await p.locator('.welcome').waitFor();
+ await p.goto((process.env.PREVIEW_URL||'http://127.0.0.1:8793/')+'#v=all');await p.locator('.welcome').waitFor();
  const click=async a=>p.locator(`[data-action="${a}"]:visible`).first().click();
  await click('new');await p.locator('#edit-title').fill('페이지 미리보기 시험');await p.locator('#edit-body').fill('미리보기를 열어도 유지할 나의 생각');await click('attach');
  await p.locator('#file-input').setInputFiles([

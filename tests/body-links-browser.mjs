@@ -49,7 +49,7 @@ async function screenshot(name){
  await p.screenshot({path:path.join(out,name+'.png')});
 }
 try{
- await p.goto(base);await p.locator('.welcome').waitFor();await action('new');await p.locator('#edit-title').fill(title);
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();await action('new');await p.locator('#edit-title').fill(title);
  await p.waitForFunction(()=>!!document.querySelector('#body-link-previews'));
  assert.equal(await host().isVisible(),false,'empty preview host is hidden');
  await body().fill(content);await body().evaluate(el=>{window.originalBody=el;el.setSelectionRange(12,18);});

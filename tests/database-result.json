@@ -1,0 +1,10 @@
+{
+  "formula": true,
+  "relation": true,
+  "calendar": true,
+  "csv": true,
+  "backup": true,
+  "markdown": true,
+  "reading": true,
+  "errors": []
+}

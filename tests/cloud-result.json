@@ -1,0 +1,8 @@
+{
+  "mockDrive": true,
+  "twoDevices": true,
+  "attachment": true,
+  "conflictCopies": true,
+  "deletion": true,
+  "errors": []
+}

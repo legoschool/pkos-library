@@ -81,7 +81,7 @@ async function measure(name){
  return layout;
 }
 try{
- await p.goto(base);await p.locator('.welcome').waitFor();await action('new');
+ await p.goto(base+'#v=all');await p.locator('.welcome').waitFor();await action('new');
  await p.locator('#edit-title').fill(title);await p.locator('#edit-body').fill(content);await tools(true);
  await p.evaluate(()=>{window.originalBody=document.querySelector('#edit-body');window.originalTitle=document.querySelector('#edit-title');});
  await measure('2048-normal-readable');
