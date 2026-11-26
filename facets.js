@@ -3,8 +3,8 @@ import {normalize,excerpt} from './core.js';
 // 본문 글자가 없는 문서: 카드 본문이 '> …원본을 열어 봅니다.' 같은 안내 한 단락뿐이거나 글자가 30자보다 적다.
 const noText=n=>{const b=String(n.body||'').trim();return excerpt(b).length<30||/^>\s/.test(b)&&!b.split(/\n\s*\n/).slice(1).some(p=>p.trim());};
 // 카드에 써 넣지 않고 서재를 열 때 계산한다. 카드 동기화는 사용자가 고치지 않은 카드만 새 판으로 바꾸기 때문이다(store.js mergeBackup).
-export const KINDS={note:'직접 쓴 기록',doc:'문서',blog:'블로그 글',video:'영상',hub:'묶음·영역'};
-export const KIND_ORDER=['note','doc','blog','video','hub'];
+export const KINDS={note:'직접 쓴 기록',doc:'문서',blog:'블로그 글',video:'영상',hub:'묶음·영역',drive:'G 드라이브 묶음'};
+export const KIND_ORDER=['note','doc','blog','video','hub','drive'];
 const EXT={hwp:'한글',hwpx:'한글',pdf:'PDF',ppt:'PPT',pptx:'PPT',doc:'워드',docx:'워드',odt:'문서',rtf:'문서',xls:'엑셀',xlsx:'엑셀',xlsm:'엑셀',csv:'엑셀',md:'글',txt:'글',html:'웹',htm:'웹',png:'사진',jpg:'사진',jpeg:'사진',gif:'사진',webp:'사진',heic:'사진',mp3:'소리',m4a:'소리',wav:'소리',mp4:'영상',mov:'영상',webm:'영상'};
 const FORMAT_TAGS=new Set(['한글','PDF','PPT','워드','엑셀','문서','글','웹','사진','소리','영상']);
 const YEAR=/^(19|20)\d\d$/;
@@ -54,7 +54,7 @@ export function yearOf(n,kind=kindOf(n)){
  const d=/^(\d{4})-\d\d/.exec(n.date||'');if(d)return {year:+d[1],guess:false};
  for(const t of n.tags||[])if(YEAR.test(t))return {year:+t,guess:false};
  const p=/^((?:19|20)\d\d)[_. -]/.exec(n.title||'');if(p)return {year:+p[1],guess:false};
- if(kind==='hub')return {year:0,guess:false};
+ if(kind==='hub'||kind==='drive')return {year:0,guess:false};
  const c=Date.parse(n.created);
  return Number.isFinite(c)?{year:new Date(c).getFullYear(),guess:kind==='doc'}:{year:0,guess:false};
 }

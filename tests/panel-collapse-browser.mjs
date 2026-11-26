@@ -37,7 +37,7 @@ async function check(name,fn){
  catch(e){results.push({name,pass:false,error:e.stack||e.message});console.error('FAIL',name,e.message);await screenshot('failure-'+results.length);throw e;}
 }
 try{
- await page.goto(new URL('?demo=1',BASE).href);
+ await page.goto(new URL('?demo=1#v=all',BASE).href);
  await page.locator('#record-panel .note-row').first().waitFor();
  await check('desktop panel buttons expose controls and initial expanded state',async()=>{
   assert.equal(await nav().getAttribute('aria-controls'),'library-sidebar');

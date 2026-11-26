@@ -113,3 +113,9 @@
 /* 휴대폰: 칸 범례가 지도를 덮어 가리므로 숨긴다(칸 이름은 지도 위 무리 이름으로 보인다) */
 @media (max-width:700px){.dg-legend{display:none}}
 .drive-legend{word-break:keep-all;text-wrap:pretty}
+/* G 드라이브 묶음 카드(읽기 전용) 머리 상자와 「기록에 함께 보기」 단추 */
+.drive-card-banner{margin:0 0 18px;padding:12px 14px;border:1px solid var(--line);border-left:4px solid var(--accent,#2563eb);border-radius:10px;background:#f6f8fc}
+.drive-card-banner p{margin:0 0 8px;font-size:14px;line-height:1.6;color:#45443f;word-break:keep-all;text-wrap:pretty}
+.drive-card-banner .drive-acts{display:flex;flex-wrap:wrap;gap:6px}
+.drive-card-banner .drive-acts button{font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.drive-cards-toggle[aria-pressed=true]{color:var(--accent,#2563eb);border-color:currentColor}

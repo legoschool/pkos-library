@@ -5,6 +5,7 @@ import {buildModel,pathOf,childrenOf,subsOf,anchorsSorted,search,GOOGLE_EXT} fro
 import {esc} from './core.js';
 import {buildRelations,reasonText} from './drive-relations.js';
 import {mountDriveGraph} from './drive-graph.js';
+import {buildDriveCards} from './drive-cards.js';
 
 const supported=typeof window.showDirectoryPicker==='function';
 const MAX_ITEMS=900000,STALE_MS=24*3600*1000;
@@ -24,7 +25,9 @@ const VIEWABLE=/\.(pdf|png|jpe?g|gif|webp|svg|bmp|txt|md|csv|json|html?|mp4|webm
 const TYPES={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',bmp:'image/bmp',txt:'text/plain;charset=utf-8',md:'text/plain;charset=utf-8',csv:'text/plain;charset=utf-8',json:'text/plain;charset=utf-8',html:'text/plain;charset=utf-8',htm:'text/plain;charset=utf-8',mp4:'video/mp4',webm:'video/webm',mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg'};
 
 export function createDriveMap({demo,toast,driveRoot,icon}){
- let rel=null,graph=null,graphHost=null,graphFor=null;
+ let rel=null,graph=null,graphHost=null,graphFor=null,cardCache=null,cardFor=null;
+ // 묶음 카드를 기록 목록·서재 현황·지식맵에도 보일지(기본 켬). 이 브라우저에만 기억한다.
+ const CARD_KEY='pkos-drive-cards';let cardsOn=localStorage.getItem(CARD_KEY)!=='0';
  let kv=null,model=null,meta=null,state='loading',scan=null,el=null,mode='graph',focusCat=-1,panel={type:'overview'},query='',error='',ready=null,abort=null;
  const listeners=new Set();
  const notify=()=>{listeners.forEach(f=>{try{f();}catch{}});paint();};
@@ -236,7 +239,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
 
  function headHTML(){
   const status=model?demo?`파일 ${fmt(model.files)}개 · 폴더 ${fmt(model.dirs)}개 · 지어낸 이름이라 실제 파일은 없습니다 · <a href="./#v=drive">내 G 드라이브 연결하기</a>`:`파일 ${fmt(model.files)}개 · 폴더 ${fmt(model.dirs)}개 · ${ago(meta?.at)} 훑음${meta?.limited?' · 너무 많아 일부만':''}`:'';
-  return `<header class="drive-head"><div class="drive-title"><span class="eyebrow">${demo?'체험용 가상 교사 드라이브':'이 컴퓨터의 G: 드라이브'}</span><h1>G 드라이브 지식맵</h1>${status?`<p class="drive-status">${status}</p>`:''}</div><div class="drive-tools">${model?`<label class="drive-search">${icon('search')}<input type="search" data-drive-query placeholder="G 드라이브에서 찾기 (예: 드론 수업)" value="${esc(query)}" aria-label="G 드라이브에서 찾기"></label><div class="drive-modes" role="group" aria-label="지도 보기"><button type="button" data-drive-mode="graph" aria-pressed="${mode==='graph'}">연결 지도</button><button type="button" data-drive-mode="cats" aria-pressed="${mode==='cats'}">분류 기준</button><button type="button" data-drive-folder="-1">실제 폴더</button></div>`:''}${handle?`<button type="button" class="quiet small" data-drive-rescan ${scan?'disabled':''}>다시 훑기</button><button type="button" class="quiet small" data-drive-connect ${scan?'disabled':''}>다른 폴더 연결</button>`:''}</div></header>`;
+  return `<header class="drive-head"><div class="drive-title"><span class="eyebrow">${demo?'체험용 가상 교사 드라이브':'이 컴퓨터의 G: 드라이브'}</span><h1>G 드라이브 지식맵</h1>${status?`<p class="drive-status">${status}</p>`:''}</div><div class="drive-tools">${model?`<label class="drive-search">${icon('search')}<input type="search" data-drive-query placeholder="G 드라이브에서 찾기 (예: 드론 수업)" value="${esc(query)}" aria-label="G 드라이브에서 찾기"></label><div class="drive-modes" role="group" aria-label="지도 보기"><button type="button" data-drive-mode="graph" aria-pressed="${mode==='graph'}">연결 지도</button><button type="button" data-drive-mode="cats" aria-pressed="${mode==='cats'}">분류 기준</button><button type="button" data-drive-folder="-1">실제 폴더</button></div><button type="button" class="quiet small drive-cards-toggle" data-drive-cards aria-pressed="${cardsOn}" title="묶음마다 읽기 전용 카드를 만들어 모든 기록·서재 현황·지식맵·찾기에 함께 보입니다">${cardsOn?'기록에 함께 보기 켜짐':'기록에 함께 보기 꺼짐'}</button>`:''}${handle?`<button type="button" class="quiet small" data-drive-rescan ${scan?'disabled':''}>다시 훑기</button><button type="button" class="quiet small" data-drive-connect ${scan?'disabled':''}>다른 폴더 연결</button>`:''}</div></header>`;
  }
  function bodyHTML(){
   if(state==='loading'||state==='opening')return `<div class="drive-card"><p>${state==='opening'?'저장해 둔 G 드라이브 지도를 펴는 중입니다.':'G 드라이브 지도를 준비하는 중입니다.'}</p></div>`;
@@ -267,6 +270,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
     else {const z=g.dataset.dgZoom;z==='fit'?graph.fit():graph.zoom(z==='in'?1.3:1/1.3);}
     return;
    }
+   if(e.target.closest('[data-drive-cards]')){cardsOn=!cardsOn;localStorage.setItem(CARD_KEY,cardsOn?'1':'0');toast(cardsOn?'G 드라이브 묶음을 모든 기록·서재 현황·지식맵에 함께 보입니다.':'G 드라이브 묶음 카드를 기록 목록에서 뺐습니다.');notify();return;}
    const t=e.target.closest('[data-drive-connect],[data-drive-rescan],[data-drive-stop],[data-drive-mode],[data-drive-cat],[data-drive-group],[data-drive-topic],[data-drive-folder],[data-drive-home]');if(!t)return;
    if(t.matches('[data-drive-connect]'))return void connect();
    if(t.matches('[data-drive-rescan]'))return void rescan(true);
@@ -287,6 +291,8 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
   ready:()=>ready,
   mount(target){el=target;bind();paint();},
   hasModel:()=>!!model,
+  // 묶음마다 읽기 전용 기록 카드(drive-cards.js). 드라이브 지도가 바뀔 때만 다시 만든다.
+  cards(){if(!model||!cardsOn)return [];if(cardFor!==model){if(!rel)rel=buildRelations(model);cardCache=buildDriveCards(model,rel,{at:meta?.at||Date.now(),root:demo?'가상 교사 드라이브':(meta?.root||'내 드라이브')});cardFor=model;}return cardCache;},
   files:()=>model?.files||0,
   // 다른 화면에서 G 드라이브 지도로 넘어올 때: 찾을 낱말이나 보여 줄 항목을 미리 정해 둔다.
   focus({q,item}={}){if(q!==undefined)query=q;if(item>=0&&model){query='';const i=Number(item);panel=model.isDir[i]?{type:'folder',i}:{type:'folder',i:model.parent[i]};}},
