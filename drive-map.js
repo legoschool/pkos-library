@@ -3,6 +3,8 @@
 import {CATS,TOPICS,SKIP_TOP,SKIP_NAME,SENSITIVE} from './drive-map-rules.js';
 import {buildModel,pathOf,childrenOf,subsOf,anchorsSorted,search,GOOGLE_EXT} from './drive-map-model.js';
 import {esc} from './core.js';
+import {buildRelations,reasonText} from './drive-relations.js';
+import {mountDriveGraph} from './drive-graph.js';
 
 const supported=typeof window.showDirectoryPicker==='function';
 const MAX_ITEMS=900000,STALE_MS=24*3600*1000;
@@ -22,7 +24,8 @@ const VIEWABLE=/\.(pdf|png|jpe?g|gif|webp|svg|bmp|txt|md|csv|json|html?|mp4|webm
 const TYPES={pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',svg:'image/svg+xml',bmp:'image/bmp',txt:'text/plain;charset=utf-8',md:'text/plain;charset=utf-8',csv:'text/plain;charset=utf-8',json:'text/plain;charset=utf-8',html:'text/plain;charset=utf-8',htm:'text/plain;charset=utf-8',mp4:'video/mp4',webm:'video/webm',mp3:'audio/mpeg',wav:'audio/wav',m4a:'audio/mp4',ogg:'audio/ogg'};
 
 export function createDriveMap({demo,toast,driveRoot,icon}){
- let kv=null,model=null,meta=null,state='loading',scan=null,el=null,mode='cats',focusCat=-1,panel={type:'overview'},query='',error='',ready=null,abort=null;
+ let rel=null,graph=null,graphHost=null,graphFor=null;
+ let kv=null,model=null,meta=null,state='loading',scan=null,el=null,mode='graph',focusCat=-1,panel={type:'overview'},query='',error='',ready=null,abort=null;
  const listeners=new Set();
  const notify=()=>{listeners.forEach(f=>{try{f();}catch{}});paint();};
 
@@ -31,7 +34,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
    kv=await openKV(demo?'pkos-drive-map-demo':'pkos-drive-map-v1');
    const h=await kv.get('handle');handle=h?.handle||null;meta=(await kv.get('index-meta'))||null;
    const idx=await kv.get('index');
-   if(idx?.blob){state='opening';paint();model=buildModel(JSON.parse(await gunzip(idx.blob)));}
+   if(idx?.blob){state='opening';paint();model=buildModel(JSON.parse(await gunzip(idx.blob)));resetGraph();}
    state=model?'ready':handle?'need-scan':'empty';
   }catch(e){state=handle?'need-scan':'empty';error='저장해 둔 지도를 읽지 못했습니다. 다시 훑어 주세요. ('+e.message+')';}
   notify();
@@ -84,7 +87,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
    await new Promise((resolve)=>{let active=0;const pump=()=>{if(signal.aborted&&!active){resolve();return;}while(!signal.aborted&&active<12&&queue.length){const job=queue.pop();active++;listDir(job).finally(()=>{active--;if(!queue.length&&!active)resolve();else pump();});}if(!queue.length&&!active)resolve();};pump();});
    if(signal.aborted){scan=null;toast('훑기를 멈췄습니다. 전에 만든 지도는 그대로입니다.');paint();return;}
    const raw={names,parent,dir:dirs.join('')};
-   model=buildModel(raw);
+   model=buildModel(raw);resetGraph();
    meta={id:'index-meta',at:Date.now(),ms:Date.now()-started,count:names.length,files:model.files,dirs:model.dirs,excluded,unreadable,limited,root:handle.name};
    await kv.put({id:'index',blob:await gzip(JSON.stringify(raw))});await kv.put(meta);
    state='ready';error='';
@@ -131,6 +134,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
    const r=search(model,query.trim());
    return `<div class="drive-panel-head"><h2>「${esc(query.trim())}」 찾은 결과</h2><p>${fmt(r.total)}개${r.total>r.items.length?' · 앞의 '+fmt(r.items.length)+'개만 보입니다. 낱말을 더 띄어 쓰면 좁혀집니다.':''}</p></div>${r.items.length?`<ul class="drive-list">${r.items.map(i=>itemHTML(i)).join('')}</ul>`:'<p class="drive-empty">이름에 이 낱말이 든 파일·폴더가 없습니다. 다른 낱말이나 띄어 쓴 두 낱말로 찾아보세요.</p>'}`;
   }
+  if(panel.type==='node'&&rel&&rel.nodes[panel.k]!==undefined)return nodePanelHTML(panel.k);
   if(panel.type==='group'){
    const g=model.groups.get(panel.key);if(!g){panel={type:'overview'};return panelHTML();}
    const c=CATS[g.cat],list=anchorsSorted(model,g.anchors);
@@ -145,11 +149,53 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
    const crumbs=[];for(let x=i;x>=0;x=model.parent[x])crumbs.unshift(x);
    return `<div class="drive-panel-head"><nav class="drive-crumbs"><button type="button" data-drive-folder="-1">내 드라이브</button>${crumbs.map(x=>`<span>/</span><button type="button" data-drive-folder="${x}">${esc(model.names[x])}</button>`).join('')}</nav>${i>=0?`<p>${chip(i)} 파일 ${fmt(model.tot[i])}개</p>`:''}</div><ul class="drive-list">${kids.slice(0,600).map(k=>itemHTML(k,{showChip:false,count:'tot'})).join('')}</ul>${kids.length>600?'<p class="drive-empty">항목이 많아 앞의 600개만 보입니다.</p>':''}`;
   }
+  if(mode==='graph'&&rel)return graphOverviewHTML();
   if(focusCat>=0){
    const c=CATS[focusCat],subs=subsOf(model,focusCat).filter(g=>g.files>0).sort((a,b)=>b.files-a.files);
    return `<div class="drive-panel-head"><button type="button" class="drive-back" data-drive-home>← 전체 지도</button><h2>${esc(c.key+' '+c.label)}</h2><p>${esc(c.note)} · 파일 ${fmt(model.catFiles[focusCat])}개</p></div><ul class="drive-groups">${subs.map(g=>`<li><button type="button" data-drive-group="${g.cat*65536+g.sub}"><span>${esc(g.label)}</span><small>${fmt(g.files)}개 · 묶음 ${fmt(g.anchors.length)}</small></button></li>`).join('')}</ul>`;
   }
   return `<div class="drive-panel-head"><h2>7판 분류로 본 G 드라이브</h2><p>칸을 누르면 소분류가, 소분류를 누르면 실제 폴더가 나옵니다.</p></div><ul class="drive-groups">${CATS.map((c,k)=>model.catFiles[k]||model.catDirs[k]?`<li><button type="button" data-drive-cat="${k}" style="--c:${c.color}"><span><b class="dot"></b>${esc(c.key+' '+c.label)}</span><small>${fmt(model.catFiles[k])}개 · ${esc(c.note)}</small></button></li>`:'').join('')}</ul><p class="drive-note">강사카드·동의서·계약서·통장·명단 같은 이름 ${fmt(meta?.excluded||0)}개와 00_개인자력관리, GPKI는 지도에 올리지 않았습니다. 지도는 이 브라우저에만 저장됩니다.</p>`;
+ }
+
+ // ── 연결 지도 ──
+ function resetGraph(){graph?.dispose();graph=null;graphHost=null;rel=null;graphFor=null;}
+ const nodeName=k=>model.names[rel.nodes[k]];
+ const nodePath=k=>pathOf(model,rel.nodes[k]).join(' / ');
+ const nodeChip=k=>chip(rel.nodes[k]);
+ function ensureGraph(){
+  if(!model)return null;
+  if(!rel)rel=buildRelations(model);
+  if(graphHost&&graphFor===model)return graphHost;
+  graph?.dispose();graphHost=document.createElement('div');graphHost.className='dg-host';graphFor=model;
+  const present=[...new Set(rel.nodes.map(d=>model.cat[d]))].sort((a,b)=>a-b),cl=new Map(present.map((c,k)=>[c,k]));
+  const clusters=present.map(c=>({label:CATS[c].key+' '+CATS[c].label,color:CATS[c].color,cat:c}));
+  const nodes=rel.nodes.map((d,k)=>({label:model.names[d],sub:CATS[model.cat[d]].label+' · 파일 '+fmt(rel.files[k])+'개 · 연결 '+rel.neighbors[k].length+'곳',color:CATS[model.cat[d]].color,r:Math.min(30,3.5+Math.sqrt(rel.files[k])*.75),cluster:cl.get(model.cat[d])}));
+  const edges=rel.edges.map(e=>({a:e.a,b:e.b,w:Math.min(4,e.score/2.5)}));
+  graph=mountDriveGraph(graphHost,{nodes,edges,clusters,onSelect:k=>{query='';const q=el?.querySelector('[data-drive-query]');if(q)q.value='';panel=k>=0?{type:'node',k}:{type:'overview'};graph.highlight(null);paintPanel();}});
+  graph.clusters=clusters;
+  return graphHost;
+ }
+ const relItem=(k,e)=>{const o=e.a===k?e.b:e.a;return `<li class="dg-rel"><button type="button" class="drive-name" data-dg-node="${o}">${esc(nodeName(o))}</button><small>${nodeChip(o)}<span class="drive-where">${esc(nodePath(o))}</span></small><p class="dg-why">${esc(reasonText(e))}</p>${e.sample.length?`<p class="dg-sample">같은 파일 예: ${e.sample.slice(0,3).map(n=>'<code>'+esc(n)+'</code>').join(' ')}</p>`:''}</li>`;};
+ function nodePanelHTML(k){
+  const d=rel.nodes[k],list=rel.neighbors[k].map(i=>rel.edges[i]).sort((a,b)=>b.score-a.score);
+  const topics=[...rel.topicCount[k]].map((c,t)=>[t,c]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const cross=list.filter(e=>model.cat[rel.nodes[e.a]]!==model.cat[rel.nodes[e.b]]).length;
+  return `<div class="drive-panel-head"><button type="button" class="drive-back" data-dg-home>← 전체 연결</button><h2>${esc(model.names[d])}</h2><p>${chip(d)} 파일 ${fmt(rel.files[k])}개</p><p class="drive-where">${esc(nodePath(k))}</p>${rel.top[k].length?`<div class="dg-words">${rel.top[k].slice(0,8).map(([w])=>`<span>${esc(w)}</span>`).join('')}</div>`:''}${topics.length?`<div class="dg-words topics">${topics.map(([t,c])=>`<button type="button" data-drive-topic="${t}">${esc(TOPICS[t][0])} ${fmt(c)}</button>`).join('')}</div>`:''}<div class="drive-acts"><button type="button" data-drive-folder="${d}">폴더 안 보기</button><button type="button" data-drive-act="copy" data-i="${d}">경로 복사</button><button type="button" data-drive-act="find" data-i="${d}">드라이브에서 찾기</button></div></div><h3 class="dg-h3">관련 자료 ${fmt(list.length)}곳${cross?` · 다른 칸 ${fmt(cross)}곳`:''}</h3>${list.length?`<ul class="drive-list dg-rels">${list.map(e=>relItem(k,e)).join('')}</ul>`:'<p class="drive-empty">이름으로 찾은 뚜렷한 연결이 없습니다. 이 묶음은 혼자 쓰인 자료일 가능성이 큽니다.</p>'}`;
+ }
+ function graphOverviewHTML(){
+  const cross=rel.edges.filter(e=>model.cat[rel.nodes[e.a]]!==model.cat[rel.nodes[e.b]]).slice(0,14);
+  const hubs=rel.nodes.map((d,k)=>k).sort((a,b)=>rel.neighbors[b].length-rel.neighbors[a].length||rel.files[b]-rel.files[a]).slice(0,8);
+  return `<div class="drive-panel-head"><h2>G 드라이브 지식맵</h2><p>드라이브를 묶음 ${fmt(rel.nodes.length)}개로 나누고, 이름만 보고 찾은 연결 ${fmt(rel.edges.length)}개를 그렸습니다. 같은 칸은 한 무리로 모이고, 보라색 선은 서로 다른 칸을 잇습니다.</p><ul class="dg-keys"><li><b>같은 이름 파일</b> 한 자료가 두 곳에 있음</li><li><b>주제</b> 주제 사전(드론, 학생자치 등)이 함께 나옴</li><li><b>낱말</b> 폴더·파일 이름에 같은 낱말이 두드러짐</li></ul></div><h3 class="dg-h3">칸을 건너는 연결</h3><ul class="drive-list dg-rels">${cross.map(e=>`<li class="dg-rel"><button type="button" class="drive-name" data-dg-node="${e.a}">${esc(nodeName(e.a))}</button><span class="dg-arrow">↔</span><button type="button" class="drive-name" data-dg-node="${e.b}">${esc(nodeName(e.b))}</button><small>${nodeChip(e.a)}${nodeChip(e.b)}</small><p class="dg-why">${esc(reasonText(e))}</p></li>`).join('')}</ul><h3 class="dg-h3">많이 이어진 묶음</h3><ul class="drive-groups">${hubs.map(k=>`<li><button type="button" data-dg-node="${k}" style="--c:${CATS[model.cat[rel.nodes[k]]].color}"><span><b class="dot"></b>${esc(nodeName(k))}</span><small>연결 ${fmt(rel.neighbors[k].length)}곳 · 파일 ${fmt(rel.files[k])}개</small></button></li>`).join('')}</ul><p class="drive-note">강사카드·동의서·계약서·통장·명단 같은 이름 ${fmt(meta?.excluded||0)}개와 00_개인자력관리, GPKI는 지도에 올리지 않았습니다. 지도는 이 브라우저에만 저장됩니다.</p>`;
+ }
+ function graphBodyHTML(){
+  ensureGraph();
+  const hidden=graph?.hidden()||new Set();
+  return `<div class="drive-body is-graph"><div class="drive-canvas dg-wrap"><div class="dg-legend" role="group" aria-label="칸 보이기·숨기기">${graph.clusters.map((c,k)=>`<button type="button" data-dg-cluster="${k}" aria-pressed="${!hidden.has(k)}" style="--c:${c.color}"><b class="dot"></b>${esc(c.label)}</button>`).join('')}</div><div class="dg-slot"></div><div class="dg-zoom"><button type="button" data-dg-zoom="in" aria-label="확대">+</button><button type="button" data-dg-zoom="out" aria-label="축소">−</button><button type="button" data-dg-zoom="fit">전체</button></div><p class="drive-legend">원 크기는 파일 수, 선 굵기는 연결의 세기입니다. 휠로 확대하고 빈 곳을 끌어 옮깁니다. 원을 누르면 어떻게 이어지는지 나옵니다.</p></div><aside class="drive-panel">${panelHTML()}</aside></div>`;
+ }
+ function highlightFromQuery(){
+  if(!graph||!rel)return;const q=query.trim().toLowerCase();if(!q){graph.highlight(null);return;}
+  const set=new Set();search(model,q,{limit:300}).items.forEach(i=>{const k=rel.owner[i];if(k>=0)set.add(k);});
+  rel.nodes.forEach((d,k)=>{if(model.low[d].includes(q))set.add(k);});graph.highlight(set);
  }
 
  function bubble(x,y,r,label,sub,color,attr,active){
@@ -187,7 +233,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
 
  function headHTML(){
   const status=model?`파일 ${fmt(model.files)}개 · 폴더 ${fmt(model.dirs)}개 · ${ago(meta?.at)} 훑음${meta?.limited?' · 너무 많아 일부만':''}`:'';
-  return `<header class="drive-head"><div class="drive-title"><span class="eyebrow">이 컴퓨터의 G: 드라이브</span><h1>G 드라이브 지도</h1>${status?`<p class="drive-status">${status}</p>`:''}</div><div class="drive-tools">${model?`<label class="drive-search">${icon('search')}<input type="search" data-drive-query placeholder="G 드라이브에서 찾기 (예: 드론 수업)" value="${esc(query)}" aria-label="G 드라이브에서 찾기"></label><div class="drive-modes" role="group" aria-label="지도 보기"><button type="button" data-drive-mode="cats" aria-pressed="${mode==='cats'}">분류 기준</button><button type="button" data-drive-mode="topics" aria-pressed="${mode==='topics'}">주제</button><button type="button" data-drive-folder="-1">실제 폴더</button></div>`:''}${handle?`<button type="button" class="quiet small" data-drive-rescan ${scan?'disabled':''}>다시 훑기</button><button type="button" class="quiet small" data-drive-connect ${scan?'disabled':''}>다른 폴더 연결</button>`:''}</div></header>`;
+  return `<header class="drive-head"><div class="drive-title"><span class="eyebrow">이 컴퓨터의 G: 드라이브</span><h1>G 드라이브 지식맵</h1>${status?`<p class="drive-status">${status}</p>`:''}</div><div class="drive-tools">${model?`<label class="drive-search">${icon('search')}<input type="search" data-drive-query placeholder="G 드라이브에서 찾기 (예: 드론 수업)" value="${esc(query)}" aria-label="G 드라이브에서 찾기"></label><div class="drive-modes" role="group" aria-label="지도 보기"><button type="button" data-drive-mode="graph" aria-pressed="${mode==='graph'}">연결 지도</button><button type="button" data-drive-mode="cats" aria-pressed="${mode==='cats'}">분류 기준</button><button type="button" data-drive-folder="-1">실제 폴더</button></div>`:''}${handle?`<button type="button" class="quiet small" data-drive-rescan ${scan?'disabled':''}>다시 훑기</button><button type="button" class="quiet small" data-drive-connect ${scan?'disabled':''}>다른 폴더 연결</button>`:''}</div></header>`;
  }
  function bodyHTML(){
   if(state==='loading'||state==='opening')return `<div class="drive-card"><p>${state==='opening'?'저장해 둔 G 드라이브 지도를 펴는 중입니다.':'G 드라이브 지도를 준비하는 중입니다.'}</p></div>`;
@@ -195,19 +241,29 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
    if(!supported)return `<div class="drive-card"><h2>이 브라우저에서는 G 드라이브를 열 수 없습니다</h2><p>휴대폰과 Safari는 컴퓨터 폴더를 읽지 못합니다.<br>PC의 Chrome이나 Edge에서 이 주소를 열어 주세요.</p></div>`;
    return `<div class="drive-card"><span class="drive-card-icon">${icon('folder')}</span><h2>${handle?'G 드라이브를 한 번 더 허용해 주세요':'G 드라이브를 연결해 주세요'}</h2><p>구글 드라이브 앱이 깔린 PC에는 G: 드라이브가 있습니다.<br>연결 창에서 <b>G:</b> 또는 그 안의 <b>내 드라이브</b>를 고르면 됩니다.</p><ol><li>파일 이름만 읽고, 내용은 누를 때만 엽니다.</li><li>지도는 이 브라우저에만 저장하고 인터넷으로 보내지 않습니다.</li><li>PC마다 처음 한 번만 고르면 다음부터 기억합니다.<br>「매번 허용」을 고르면 다시 묻지 않습니다.</li></ol><button type="button" class="primary" ${handle?'data-drive-rescan':'data-drive-connect'} ${scan?'disabled':''}>${handle?'G 드라이브 다시 허용하기':'G 드라이브 연결하기'}</button>${error?`<p class="error">${esc(error)}</p>`:''}</div>`;
   }
+  if(mode==='graph')return `${error?`<p class="error drive-error">${esc(error)}</p>`:''}${graphBodyHTML()}`;
   return `${error?`<p class="error drive-error">${esc(error)}</p>`:''}<div class="drive-body"><div class="drive-canvas">${svgHTML()}<p class="drive-legend">${mode==='topics'?'주제 사전의 낱말이 이름에 든 파일 수입니다. 한 파일이 여러 주제에 들 수 있습니다.':focusCat>=0?'원 크기는 파일 수입니다. 가운데를 누르면 전체 지도로 돌아갑니다.':'「드라이브 폴더 재구성안」 7판의 칸입니다. 원 크기는 파일 수입니다.'}</p></div><aside class="drive-panel">${panelHTML()}</aside></div>`;
  }
  function paint(){
   if(!el?.isConnected)return;
   const focused=document.activeElement?.matches?.('[data-drive-query]'),pos=focused?document.activeElement.selectionStart:0;
   el.innerHTML=`<section class="drive-map">${headHTML()}${progressHTML()}${bodyHTML()}</section>`;
+  const slot=el.querySelector('.dg-slot');if(slot&&graphHost){slot.replaceWith(graphHost);highlightFromQuery();}
   if(focused){const q=el.querySelector('[data-drive-query]');q?.focus();try{q.setSelectionRange(pos,pos);}catch{}}
  }
  let qTimer=null;
  function bind(){
-  el.addEventListener('input',e=>{if(!e.target.matches('[data-drive-query]'))return;clearTimeout(qTimer);const v=e.target.value;qTimer=setTimeout(()=>{query=v;paintPanel();},160);});
+  el.addEventListener('input',e=>{if(!e.target.matches('[data-drive-query]'))return;clearTimeout(qTimer);const v=e.target.value;qTimer=setTimeout(()=>{query=v;paintPanel();highlightFromQuery();},160);});
   el.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('.drive-node')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
   el.addEventListener('click',e=>{
+   const g=e.target.closest('[data-dg-node],[data-dg-cluster],[data-dg-zoom],[data-dg-home]');
+   if(g&&graph){
+    if(g.matches('[data-dg-node]')){const k=Number(g.dataset.dgNode);query='';panel={type:'node',k};graph.highlight(null);graph.select(k);paintPanel();}
+    else if(g.matches('[data-dg-home]')){panel={type:'overview'};graph.select(-1,{center:false});graph.highlight(null);paintPanel();}
+    else if(g.matches('[data-dg-cluster]')){graph.toggleCluster(Number(g.dataset.dgCluster));g.setAttribute('aria-pressed',String(!graph.hidden().has(Number(g.dataset.dgCluster))));}
+    else {const z=g.dataset.dgZoom;z==='fit'?graph.fit():graph.zoom(z==='in'?1.3:1/1.3);}
+    return;
+   }
    const t=e.target.closest('[data-drive-connect],[data-drive-rescan],[data-drive-stop],[data-drive-mode],[data-drive-cat],[data-drive-group],[data-drive-topic],[data-drive-folder],[data-drive-home]');if(!t)return;
    if(t.matches('[data-drive-connect]'))return void connect();
    if(t.matches('[data-drive-rescan]'))return void rescan(true);
@@ -217,8 +273,8 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
    else if(t.matches('[data-drive-home]')){focusCat=-1;panel={type:'overview'};}
    else if(t.matches('[data-drive-cat]')){mode='cats';focusCat=Number(t.dataset.driveCat);panel={type:'overview'};}
    else if(t.matches('[data-drive-group]')){const key=Number(t.dataset.driveGroup);mode='cats';focusCat=Math.floor(key/65536);panel={type:'group',key};}
-   else if(t.matches('[data-drive-topic]')){mode='topics';panel={type:'topic',topic:Number(t.dataset.driveTopic)};}
-   else if(t.matches('[data-drive-folder]')){panel={type:'folder',i:Number(t.dataset.driveFolder)};}
+   else if(t.matches('[data-drive-topic]')){const tp=Number(t.dataset.driveTopic);panel={type:'topic',topic:tp};if(mode==='graph'&&rel&&graph){graph.highlight(new Set(rel.nodes.map((d,k)=>k).filter(k=>rel.topicCount[k][tp]>0)));paintPanel();return;}mode='cats';}
+   else if(t.matches('[data-drive-folder]')){panel={type:'folder',i:Number(t.dataset.driveFolder)};if(mode==='graph'&&graph){paintPanel();return;}}
    paint();el.querySelector('.drive-panel')?.scrollTo(0,0);
   });
  }

@@ -76,3 +76,34 @@
 .homelink:hover{transform:translateY(-1px);text-decoration:none}
 @media (max-width:1100px){.drive-body{grid-template-columns:1fr}.drive-canvas{position:static}.drive-panel{max-height:none}}
 @media (max-width:700px){.drive-map{padding:16px 16px 32px}.drive-title h1{font-size:22px}.drive-search{min-width:100%}}
+/* 연결 지도 */
+.drive-body.is-graph{grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr)}
+.dg-wrap{position:relative;padding:0;overflow:hidden;background:radial-gradient(circle at 50% 45%,#fbfdff 0,#f6f8fc 70%)}
+.dg-host{position:relative;height:clamp(460px,calc(100dvh - 250px),900px);touch-action:none}
+.dg-canvas{display:block;cursor:grab}
+.dg-canvas:active{cursor:grabbing}
+.dg-tip{position:absolute;pointer-events:none;background:rgba(23,43,67,.92);color:#fff;border-radius:8px;padding:6px 10px;font-size:12px;line-height:1.4;max-width:240px;box-shadow:0 6px 18px rgba(23,43,67,.25);z-index:2}
+.dg-tip b{display:block;font-size:13px;word-break:break-all}
+.dg-tip span{opacity:.8}
+.dg-legend{position:absolute;top:10px;left:10px;right:110px;z-index:2;display:flex;flex-wrap:wrap;gap:5px}
+.dg-legend button{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.88);border:1px solid var(--line);backdrop-filter:blur(6px);color:#3f3e3a}
+.dg-legend button[aria-pressed=false]{opacity:.45;text-decoration:line-through}
+.dg-legend .dot,.dg-rel .dot{width:9px;height:9px;border-radius:50%;background:var(--c);display:inline-block}
+.dg-zoom{position:absolute;top:10px;right:10px;z-index:2;display:flex;gap:4px}
+.dg-zoom button{min-width:32px;height:32px;padding:0 9px;border-radius:8px;background:rgba(255,255,255,.92);border:1px solid var(--line);font-size:14px;font-weight:600;backdrop-filter:blur(6px)}
+.dg-wrap .drive-legend{position:absolute;left:10px;bottom:6px;right:10px;z-index:2;pointer-events:none;background:none}
+.dg-h3{font-size:13px;color:var(--accent-text);margin:16px 0 4px;letter-spacing:.01em}
+.dg-keys{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px;font-size:12.5px;color:#55534d}
+.dg-keys b{display:inline-block;min-width:92px;color:#292929}
+.dg-words{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.dg-words span,.dg-words button{font-size:11.5px;padding:2px 8px;border-radius:999px;background:#f3f2ef;color:#45443f}
+.dg-words.topics button{background:#f3edff;color:#6d28d9;border:1px solid #e4d8ff}
+.drive-panel-head .drive-acts{margin-top:10px}
+.drive-panel-head .drive-where{display:block;font-size:12px;color:var(--muted);margin-top:4px;word-break:break-all}
+.dg-rel{padding:10px 2px;border-bottom:1px solid #f0efec;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 6px}
+.dg-rel>small{flex-basis:100%;display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12px;color:var(--muted);margin-top:3px}
+.dg-arrow{color:#7c3aed;font-weight:700}
+.dg-why{flex-basis:100%;font-size:12.5px;color:#4c1d95;margin-top:4px;text-wrap:pretty}
+.dg-sample{flex-basis:100%;font-size:11.5px;color:var(--muted);margin-top:2px;word-break:break-all}
+.dg-sample code{font-size:11px;background:#f6f5f2;padding:1px 4px;border-radius:4px}
+@media (max-width:1100px){.drive-body.is-graph{grid-template-columns:1fr}.dg-host{height:62vh}}

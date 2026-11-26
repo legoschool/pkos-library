@@ -40,7 +40,7 @@ await ctx.route('https://pkos-library.vercel.app/api/reading-shares**',async rou
  if(op==='discard')return answer(200,{ok:true});
  return answer(400,{error:'지원하지 않는 시험 요청입니다.'});
 });
-await ctx.route('https://pkos-library.vercel.app/share.html?*',route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>가상 공유 문서</title><p id="shared-fixture">가상 공유 주소 열기 검증</p>'}));
+await ctx.route(/^https:\/\/(pkos-library\.vercel\.app|legoschool\.github\.io\/pkos-library)\/share\.html\?/,route=>route.fulfill({status:200,contentType:'text/html',body:'<!doctype html><title>가상 공유 문서</title><p id="shared-fixture">가상 공유 주소 열기 검증</p>'}));
 const p=await ctx.newPage();p.on('pageerror',error=>errors.push(error.message));p.on('console',message=>{if(message.type()==='error')consoleErrors.push(message.text());});
 const d=()=>p.locator('.reading-export-dialog'),control=name=>d().locator('[data-reading="'+name+'"]');
 async function check(name,fn){await fn();checks.push(name);console.log('PASS '+name);}
@@ -85,7 +85,7 @@ try{
   assert.equal(await control('publish').isDisabled(),true);assert.equal(await d().locator('[data-reading-title]').isDisabled(),true);
   await control('publish').evaluate(button=>button.dispatchEvent(new MouseEvent('click',{bubbles:true})));assert.equal(await p.evaluate(()=>window.mockUploads.length),count+1);
   await p.evaluate(()=>{window.mockHoldUpload=false;window.mockReleaseUpload();window.mockReleaseUpload=null;});await idle();
-  const url=await d().locator('[data-reading-url]').inputValue();assert.match(url,/^https:\/\/pkos-library\.vercel\.app\/share\.html\?id=[a-f0-9]{32}$/);assert.equal(await d().locator('[data-reading-url]').getAttribute('readonly'),'');
+  const url=await d().locator('[data-reading-url]').inputValue();assert.match(url,/^https:\/\/legoschool\.github\.io\/pkos-library\/share\.html\?id=[a-f0-9]{32}$/);assert.equal(await d().locator('[data-reading-url]').getAttribute('readonly'),'');
   await control('copy-url').click();assert.equal(await p.evaluate(()=>window.mockCopied.at(-1)),url);
   const popupPromise=p.waitForEvent('popup');await d().locator('[data-reading-open]').click();const popup=await popupPromise;await popup.locator('#shared-fixture').waitFor();assert.equal(popup.url(),url);await popup.close();
   await d().screenshot({path:path.join(out,'published-address.png')});

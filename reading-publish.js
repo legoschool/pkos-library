@@ -41,7 +41,7 @@ export async function connectPublisher(code,claimId){
 }
 // 게시 설정이 된 브라우저에서 다른 기기(또는 다른 기록장 주소)용 연결 주소를 만든다. 한 시간 안에 한 번만 쓸 수 있다.
 // 주소를 연 브라우저는 publisher-connect.html 에서 키를 받아 저장하고, 서버는 그 연결을 바로 「사용함」으로 바꾼다
-export const CONNECT_ORIGINS=[['https://legoschool.github.io','GitHub 기록장(legoschool.github.io/pkos-library)'],['https://pkos-library.vercel.app','Vercel 기록장(pkos-library.vercel.app)']];
+export const CONNECT_ORIGINS=[['https://legoschool.github.io','GitHub 기록장(legoschool.github.io/pkos-library)']];
 export async function createPublisherConnection(origin){
  if(!savedKey())throw new Error('게시 설정을 먼저 연결해 주세요.');
  if(!CONNECT_ORIGINS.some(([o])=>o===origin))throw new Error('연결할 기록장 주소를 골라 주세요.');
@@ -59,6 +59,9 @@ export function consumePublisherSetup(){
  history.replaceState(null,'',location.pathname+location.search);
  return configurePublisher(key).then(()=>({ok:true,message:'이 브라우저에서 웹 게시를 사용할 수 있습니다.'}),e=>({ok:false,message:e.message}));
 }
+// 읽는 사람에게 주는 주소는 GitHub 기록장 주소로 맞춘다(공유 서버는 Vercel에 그대로 둔다).
+const READER_BASE='https://legoschool.github.io/pkos-library';
+export const readerUrl=u=>typeof u==='string'?u.replace(/^https:\/\/pkos-library\.vercel\.app(?=\/)/,READER_BASE):u;
 export async function publishReadingBundle(bundle,{title='함께 읽기',id,onProgress=()=>{}}={}){
  if(!savedKey())throw new Error('게시 설정을 먼저 연결해 주세요.');
  if(id&&!idPattern.test(id))throw new Error('갱신할 공유 주소가 올바르지 않습니다.');
@@ -77,7 +80,9 @@ export async function publishReadingBundle(bundle,{title='함께 읽기',id,onPr
    onUploadProgress:({percentage})=>onProgress('웹에 올리는 중… '+Math.round(percentage)+'%')
   });
   uploaded=true;onProgress('공유 주소를 만드는 중…');
-  return await request('publish',{method:'POST',body:{id,version,title:String(title).slice(0,200)}});
+  const result=await request('publish',{method:'POST',body:{id,version,title:String(title).slice(0,200)}});
+  if(result&&result.url)result.url=readerUrl(result.url);
+  return result;
  }catch(error){
   // A committed publication must survive an ambiguous network failure.
   // The server only discards this version when it is not the active manifest.
@@ -87,7 +92,7 @@ export async function publishReadingBundle(bundle,{title='함께 읽기',id,onPr
 }
 export async function listReadingShares(){
  const all=[];let cursor;
- do{const result=await request('list',{cursor});all.push(...(result.shares||result.items||[]));cursor=result.cursor;}while(cursor&&all.length<1000);
+ do{const result=await request('list',{cursor});all.push(...(result.shares||result.items||[]).map(s=>s&&s.url?{...s,url:readerUrl(s.url)}:s));cursor=result.cursor;}while(cursor&&all.length<1000);
  return all;
 }
 export function deleteReadingShare(id){return request('delete',{method:'DELETE',id});}

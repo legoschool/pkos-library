@@ -142,9 +142,9 @@ try{
   await mirrored(latest);assert.equal((await state()).notes.find(n=>n.id===noteId).body,latest);assert.ok(await page.locator('#edit-body').isVisible());assert.equal(await page.locator('#edit-body').inputValue(),latest);
  });
  await check('navigation waits for edits typed during an earlier slow folder save instead of discarding the newer draft',async()=>{
-  await edit();await holdMirror();await page.locator('#edit-body').fill('다른 메뉴를 열기 전에 저장할 첫 번째 글');await page.locator('.sidebar [data-view="favorites"]').click();await mirrorBusy();
+  await edit();await holdMirror();await page.locator('#edit-body').fill('다른 메뉴를 열기 전에 저장할 첫 번째 글');await page.locator('.sidebar [data-view="review"]').click();await mirrorBusy();
   const latest='메뉴 이동의 저장을 기다리다가 더 쓴 마지막 문장입니다.';await page.locator('#edit-body').fill(latest);await releaseMirror();
-  await page.waitForFunction(()=>document.querySelector('.sidebar [data-view="favorites"]').getAttribute('aria-current')==='page');
+  await page.waitForFunction(()=>document.querySelector('.sidebar [data-view="review"]').getAttribute('aria-current')==='page');
   await mirrored(latest);assert.equal((await state()).notes.find(n=>n.id===noteId).body,latest);
   await page.locator('.sidebar [data-view="all"]').click();await page.locator('.note-row').first().click();await edit();
  });
