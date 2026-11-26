@@ -85,7 +85,7 @@ try{
   const s=await state(fresh);assert.equal(s.requests,1);assert.equal(s.config.folderName,folder);await fresh.locator('[data-mirror-close]').click();
  });
  await check('an existing unconnected user sees one concise prompt and can defer without repeated prompts',async()=>{
-  const p=await openPage({seen:true});assert.equal(await guide(p).evaluate(e=>e.open),true);assert.equal(await p.locator('.guide-count').textContent(),'로컬 폴더 자동 저장');assert.ok(await button(p,'connect').isVisible());assert.equal(await p.evaluate(()=>window.testPickerCalls),0);
+  const p=await openPage({seen:true});assert.equal(await guide(p).evaluate(e=>e.open),true);assert.equal(await p.locator('.guide-count').textContent(),'G 드라이브에 기록 저장');assert.ok(await button(p,'connect').isVisible());assert.equal(await p.evaluate(()=>window.testPickerCalls),0);
   await button(p,'next').click();assert.equal(await guide(p).evaluate(e=>e.open),false);await p.reload();await p.locator('.pkos-guide').waitFor({state:'attached'});assert.equal(await guide(p).evaluate(e=>e.open),false);
   await p.locator('[data-guide-open]').click();await button(p,'next').click();assert.ok(await button(p,'connect').isVisible());await button(p,'close').click();
  });

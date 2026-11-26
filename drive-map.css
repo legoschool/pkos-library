@@ -120,3 +120,24 @@
 .drive-card-banner .drive-acts button{font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
 .drive-cards-toggle{display:inline-flex;align-items:center;width:auto;flex:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;background:#fff;font-size:13px}
 .drive-cards-toggle[aria-pressed=true]{color:var(--accent,#2563eb);border-color:currentColor}
+
+/* G 드라이브 구성대로 저장: 저장 창의 자리 미리 보기 */
+.folder-mirror-dialog .mirror-places h3{font-size:14px;margin:18px 0 4px}
+.folder-mirror-dialog .place-list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px;max-height:46vh;overflow:auto}
+.folder-mirror-dialog .place-row{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--line,#e5e5e5);border-radius:10px;background:var(--panel,#fff)}
+.folder-mirror-dialog .place-title{font-weight:700;font-size:14px;overflow-wrap:anywhere;text-wrap:pretty}
+.folder-mirror-dialog .place-pick select{width:100%;max-width:100%;font-size:13px;padding:6px 8px;border-radius:8px}
+.folder-mirror-dialog .place-row .hint{margin:0;font-size:12px}
+.folder-mirror-dialog .mirror-legacy{margin:16px 0 0;font-size:13px}
+.folder-mirror-dialog .mirror-legacy summary{cursor:pointer;color:var(--muted)}
+/* 데스크톱 앱 설치 · 내 컴퓨터로 받기 */
+.install-entry{display:flex;align-items:center;gap:6px;white-space:normal;text-align:left}
+.install-entry svg{width:15px;height:15px;flex:none}
+.install-guide h3{font-size:15px;margin:18px 0 6px}
+.install-guide h3:first-child{margin-top:0}
+.install-guide .install-steps{margin:8px 0 0;padding-left:1.3em;display:grid;gap:6px;font-size:13.5px;line-height:1.7;text-wrap:pretty}
+.install-guide code{font-size:12.5px}
+.install-guide .hint{font-size:12px;line-height:1.7;color:var(--muted);margin-top:14px;text-wrap:pretty}
+.folder-mirror-dialog .dialog-body,.install-guide{word-break:keep-all;overflow-wrap:anywhere}
+.folder-mirror-dialog .dialog-body>p{text-wrap:pretty}
+.install-guide .dialog-lead{font-size:14px;line-height:1.75;text-wrap:pretty}

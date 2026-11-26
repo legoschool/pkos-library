@@ -6,6 +6,7 @@ import {esc} from './core.js';
 import {buildRelations,reasonText} from './drive-relations.js';
 import {mountDriveGraph} from './drive-graph.js';
 import {buildDriveCards} from './drive-cards.js';
+import {buildPlacer} from './drive-placement.js';
 
 const supported=typeof window.showDirectoryPicker==='function';
 const MAX_ITEMS=900000,STALE_MS=24*3600*1000;
@@ -13,6 +14,8 @@ let handle=null;
 // 다른 폴더 선택 창도 G 드라이브에서 열리게 한다.
 export function driveStartIn(){return handle||undefined;}
 export function pickerOptions(base,id){return handle?{...base,startIn:handle}:{...base,id};}
+// 기록을 드라이브 구성대로 저장할 때 쓰는 G 드라이브(내 드라이브) 손잡이.
+export function getDriveHandle(){return handle;}
 
 function openKV(name){
  return new Promise((res,rej)=>{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>r.result.createObjectStore('kv',{keyPath:'id'});r.onsuccess=()=>{const db=r.result;const tx=(mode,fn)=>new Promise((ok,no)=>{const t=db.transaction('kv',mode),s=t.objectStore('kv'),q=fn(s);t.oncomplete=()=>ok(q?.result);t.onerror=()=>no(t.error);t.onabort=()=>no(t.error);});res({get:id=>tx('readonly',s=>s.get(id)),put:v=>tx('readwrite',s=>s.put(v)),del:id=>tx('readwrite',s=>s.delete(id))});};r.onerror=()=>rej(r.error);});
@@ -28,6 +31,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
  let rel=null,graph=null,graphHost=null,graphFor=null,cardCache=null,cardFor=null;
  // 묶음 카드를 기록 목록·서재 현황·지식맵에도 보일지(기본 켬). 이 브라우저에만 기억한다.
  const CARD_KEY='pkos-drive-cards';let cardsOn=localStorage.getItem(CARD_KEY)!=='0';
+ let raw=null,placerCache=null,placerFor=null,saveTimer=null;
  let kv=null,model=null,meta=null,state='loading',scan=null,el=null,mode='graph',focusCat=-1,panel={type:'overview'},query='',error='',ready=null,abort=null;
  const listeners=new Set();
  const notify=()=>{listeners.forEach(f=>{try{f();}catch{}});paint();};
@@ -35,11 +39,11 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
  async function init(){
   try{
    // 체험 서재(?demo=1)는 지어낸 교사 드라이브로 바로 그린다. 연수장 컴퓨터에서도 지도를 보여 줄 수 있게.
-   if(demo){state='opening';paint();const {sampleDrive}=await import('./drive-sample.js');model=buildModel(sampleDrive());meta={at:0,root:'가상 교사 드라이브'};resetGraph();state='ready';notify();return;}
+   if(demo){state='opening';paint();const {sampleDrive}=await import('./drive-sample.js');raw=sampleDrive();model=buildModel(raw);meta={at:0,root:'가상 교사 드라이브'};resetGraph();state='ready';notify();return;}
    kv=await openKV('pkos-drive-map-v1');
    const h=await kv.get('handle');handle=h?.handle||null;meta=(await kv.get('index-meta'))||null;
    const idx=await kv.get('index');
-   if(idx?.blob){state='opening';paint();model=buildModel(JSON.parse(await gunzip(idx.blob)));resetGraph();}
+   if(idx?.blob){state='opening';paint();raw=JSON.parse(await gunzip(idx.blob));model=buildModel(raw);resetGraph();}
    state=model?'ready':handle?'need-scan':'empty';
   }catch(e){state=handle?'need-scan':'empty';error='저장해 둔 지도를 읽지 못했습니다. 다시 훑어 주세요. ('+e.message+')';}
   notify();
@@ -91,7 +95,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
   try{
    await new Promise((resolve)=>{let active=0;const pump=()=>{if(signal.aborted&&!active){resolve();return;}while(!signal.aborted&&active<12&&queue.length){const job=queue.pop();active++;listDir(job).finally(()=>{active--;if(!queue.length&&!active)resolve();else pump();});}if(!queue.length&&!active)resolve();};pump();});
    if(signal.aborted){scan=null;toast('훑기를 멈췄습니다. 전에 만든 지도는 그대로입니다.');paint();return;}
-   const raw={names,parent,dir:dirs.join('')};
+   raw={names,parent,dir:dirs.join('')};
    model=buildModel(raw);resetGraph();
    meta={id:'index-meta',at:Date.now(),ms:Date.now()-started,count:names.length,files:model.files,dirs:model.dirs,excluded,unreadable,limited,root:handle.name};
    await kv.put({id:'index',blob:await gzip(JSON.stringify(raw))});await kv.put(meta);
@@ -294,6 +298,35 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
   // 묶음마다 읽기 전용 기록 카드(drive-cards.js). 드라이브 지도가 바뀔 때만 다시 만든다.
   cards(){if(!model||!cardsOn)return [];if(cardFor!==model){if(!rel)rel=buildRelations(model);cardCache=buildDriveCards(model,rel,{at:meta?.at||Date.now(),root:demo?'가상 교사 드라이브':(meta?.root||'내 드라이브')});cardFor=model;}return cardCache;},
   files:()=>model?.files||0,
+  // 기록을 어느 드라이브 폴더에 저장할지 고르는 함수(drive-placement.js). 지도가 바뀔 때만 다시 만든다.
+  placer(){if(!model)return null;if(placerFor!==model){if(!rel)rel=buildRelations(model);placerCache=buildPlacer(model,rel);placerFor=model;}return placerCache;},
+  // 기록장이 G 드라이브에 새로 쓴 파일을 다시 훑지 않고 지도에 바로 더한다(경로는 내 드라이브 기준 「a/b/c.md」).
+  addWritten(paths,gone=[]){
+   if(demo||!raw||!Array.isArray(paths)||(!paths.length&&!gone.length))return;
+   const key=(p,n)=>p+'/'+n,known=new Map();
+   for(let i=0;i<raw.names.length;i++)known.set(key(raw.parent[i],raw.names[i]),i);
+   let added=0;const dir=raw.dir.split('');
+   for(const path of paths){
+    const parts=String(path).split('/').filter(Boolean);let p=-1;
+    parts.forEach((name,j)=>{
+     let i=known.get(key(p,name));
+     if(i===undefined){i=raw.names.length;raw.names.push(name);raw.parent.push(p);dir.push(j<parts.length-1?'1':'0');known.set(key(p,name),i);added++;}
+     p=i;
+    });
+   }
+   raw.dir=dir.join('');
+   // 옮기거나 지운 파일은 지도에서 뺀다(파일만, 폴더는 그대로).
+   let removed=0;
+   if(gone.length){
+    const drop=new Uint8Array(raw.names.length);
+    for(const path of gone){const parts=String(path).split('/').filter(Boolean);let p=-1;for(const name of parts){const i=known.get(key(p,name));if(i===undefined){p=-2;break;}p=i;}if(p>=0&&raw.dir[p]==='0'){drop[p]=1;removed++;}}
+    if(removed){const map=new Int32Array(raw.names.length).fill(-1),names=[],parent=[],d=[];for(let i=0;i<raw.names.length;i++){if(drop[i])continue;map[i]=names.length;names.push(raw.names[i]);parent.push(raw.parent[i]>=0?map[raw.parent[i]]:-1);d.push(raw.dir[i]);}raw={names,parent,dir:d.join('')};}
+   }
+   if(!added&&!removed)return;model=buildModel(raw);resetGraph();
+   if(meta){meta={...meta,files:model.files,dirs:model.dirs};}
+   clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{try{await kv?.put({id:'index',blob:await gzip(JSON.stringify(raw))});if(meta)await kv?.put(meta);}catch{}},1500);
+   notify();
+  },
   // 다른 화면에서 G 드라이브 지도로 넘어올 때: 찾을 낱말이나 보여 줄 항목을 미리 정해 둔다.
   focus({q,item}={}){if(q!==undefined)query=q;if(item>=0&&model){query='';const i=Number(item);panel=model.isDir[i]?{type:'folder',i}:{type:'folder',i:model.parent[i]};}},
   // 기록 목록의 찾기 결과 아래에 붙는 G 드라이브 결과.

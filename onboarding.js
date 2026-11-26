@@ -7,7 +7,7 @@ export function setupGuide({demo=false,folderMirror=null}={}) {
  const guide=document.createElement('dialog');guide.className='pkos-guide';guide.setAttribute('aria-labelledby','guide-title');guide.setAttribute('aria-describedby','guide-description');
  guide.innerHTML='<div class="guide-spot" aria-hidden="true"></div><section class="guide-card"><div class="guide-top"><span class="guide-count"></span><button type="button" data-guide="close" aria-label="사용 안내 닫기">닫기 ×</button></div>'+uiIcon('brand').replace('class="','class="guide-emblem ')+'<h2 id="guide-title"></h2><p id="guide-description"></p><p class="hint" data-guide-folder-result role="status" aria-live="polite" hidden></p><button type="button" class="primary wide" data-guide="connect" hidden>저장할 로컬 폴더 선택</button><div class="guide-progress" aria-hidden="true"></div><a class="guide-manual" href="manual/" target="_blank" rel="noopener" hidden>화면 사진이 든 사용 설명서와 실습 열기</a><footer><button type="button" data-guide="prev">이전</button><button type="button" class="primary" data-guide="next">둘러보기</button></footer></section>';
  document.body.append(guide);
- const folderStep={folder:true,target:'.topbar [data-action="folder-mirror"]',title:'저장할 폴더를 한 번 연결하세요',text:'글과 녹음·첨부를 PC 폴더에도 자동으로 저장합니다. 내 드라이브 안의 폴더도 고를 수 있고, 구글 드라이브가 온라인 동기화를 맡습니다. 다음에 열 때도 이 폴더를 기억합니다.'};
+ const folderStep={folder:true,target:'.topbar [data-action="folder-mirror"]',title:'기록을 G 드라이브에 저장하세요',text:'「G 드라이브 지식맵」에서 내 드라이브를 연결해 두었다면, 기록마다 내용이 맞는 드라이브 폴더를 찾아 그 안에 저장합니다. 맞는 곳이 없으면 맨 위 00_PKOS 폴더에 둡니다. G 드라이브가 없으면 폴더 하나를 골라 저장합니다. 다음에 열 때도 연결을 기억합니다.'};
  const baseSteps=[
   {title:'나의지식서재에 오신 것을 환영해요',text:'펼친 책은 나의 기록, 연결된 세 점은 생각 사이의 관계를 뜻합니다. 쓰고, 찾고, 연결하는 방법을 잠깐 살펴볼까요?'},
   {target:'.sidebar [data-action="new"]',title:'떠오른 생각부터 한 줄',text:'새 기록에서 제목과 내용을 적으세요. 편집 내용은 자동 저장되며, 저장 버튼도 사용할 수 있습니다. “브라우저에 저장됨”과 연결한 “로컬 폴더 저장됨” 표시를 확인해 주세요.'},
@@ -35,10 +35,10 @@ export function setupGuide({demo=false,folderMirror=null}={}) {
  function show(){
   const s=steps[index],state=connection(),isFolder=!!s.folder;
   guide.querySelector('#guide-title').textContent=isFolder&&state.connected?'연결한 폴더를 기억합니다':s.title;
-  guide.querySelector('#guide-description').textContent=isFolder&&state.connected?(state.enabled?'다음에 이 주소를 열면 연결한 폴더로 자동 저장을 이어갑니다. 브라우저에서 권한을 다시 요청하면 「지금 저장 · 다시 시도」로 허용해 주세요.':'연결한 폴더를 기억하고 있습니다. 직접 꺼 둔 자동 저장은 그대로 유지합니다. 다시 켜려면 「로컬 폴더 자동 저장」에서 켜 주세요.'):isFolder&&!state.supported?'이 브라우저에서는 폴더 자동 저장을 지원하지 않습니다. PC의 Chrome·Edge에서 연결하거나, 「설정 · 백업」에서 Markdown 묶음으로 내보낼 수 있습니다.':s.text;
+  guide.querySelector('#guide-description').textContent=isFolder&&state.connected?(state.enabled?'다음에 이 주소를 열면 연결한 폴더로 자동 저장을 이어갑니다. 브라우저에서 권한을 다시 요청하면 「지금 저장 · 다시 시도」로 허용해 주세요.':'연결한 폴더를 기억하고 있습니다. 직접 꺼 둔 자동 저장은 그대로 유지합니다. 다시 켜려면 「G 드라이브에 저장」에서 켜 주세요.'):isFolder&&!state.supported?'이 브라우저에서는 폴더 자동 저장을 지원하지 않습니다. PC의 Chrome·Edge에서 연결하거나, 「설정 · 백업」에서 Markdown 묶음으로 내보낼 수 있습니다.':s.text;
   const result=guide.querySelector('[data-guide-folder-result]');result.hidden=!isFolder||!folderMessage;result.textContent=folderMessage;
-  const connect=guide.querySelector('[data-guide="connect"]');connect.hidden=!isFolder||!state.supported||state.connected;connect.disabled=connecting;connect.textContent=connecting?'폴더에 저장하는 중…':'저장할 로컬 폴더 선택';
-  guide.querySelector('.guide-count').textContent=folderOnly?'로컬 폴더 자동 저장':'서재 안내 · '+(index+1)+' / '+steps.length;
+  const connect=guide.querySelector('[data-guide="connect"]');connect.hidden=!isFolder||!state.supported||state.connected;connect.disabled=connecting;connect.textContent=connecting?'저장하는 중…':'저장할 곳 연결하기';
+  guide.querySelector('.guide-count').textContent=folderOnly?'G 드라이브에 기록 저장':'서재 안내 · '+(index+1)+' / '+steps.length;
   guide.querySelector('.guide-emblem').hidden=index!==0||folderOnly;
   guide.querySelector('[data-guide="prev"]').hidden=index===0;
   guide.querySelector('.guide-manual').hidden=folderOnly||index!==steps.length-1;
@@ -58,7 +58,7 @@ export function setupGuide({demo=false,folderMirror=null}={}) {
   connecting=true;folderMessage='';show();
   try{
    const saved=await folderMirror.connect(),state=connection();
-   folderMessage=saved?'글과 첨부를 폴더에 저장했습니다.':state.error||'폴더 선택을 취소했습니다. 나중에 상단의 「로컬 폴더 연결」에서 다시 연결할 수 있습니다.';
+   folderMessage=saved?'글과 첨부를 폴더에 저장했습니다.':state.error||'폴더 선택을 취소했습니다. 나중에 상단의 「G 드라이브에 저장」에서 다시 연결할 수 있습니다.';
    if(state.connected)remember(FOLDER_KEY);
   }catch(e){folderMessage=e?.message||'폴더를 연결하지 못했습니다. 나중에 다시 연결할 수 있습니다.';}
   finally{connecting=false;show();}

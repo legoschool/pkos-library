@@ -41,11 +41,13 @@ const modal=(p=page)=>p.locator('.folder-mirror-dialog');
 const command=(name,p=page)=>p.locator(`[data-mirror-command="${name}"]`);
 const screenshot=name=>page.screenshot({path:path.join(out,name+'.png'),fullPage:false});
 const open=async(p=page)=>{
- if(await modal(p).count())return;
+ if(await modal(p).count()){await p.evaluate(()=>document.querySelectorAll('.folder-mirror-dialog .mirror-legacy').forEach(d=>d.open=true));return;}
  if(await p.locator('.topbar [data-action="folder-mirror"]:visible').count())await p.locator('.topbar [data-action="folder-mirror"]').click();
  else if(await p.locator('[data-action="folder-mirror"]:visible').count())await action('folder-mirror',p);
  else{await action('settings',p);await p.locator('#dialog [data-action="folder-mirror"]').click();}
  await modal(p).waitFor();
+ // G 드라이브가 없을 때의 「폴더 하나에 모아 저장」은 접힌 칸 안에 있다. 이 시험은 그 방식을 본다.
+ await p.evaluate(()=>document.querySelectorAll('.folder-mirror-dialog .mirror-legacy').forEach(d=>d.open=true));
 };
 const close=async(p=page)=>{if(await modal(p).count())await p.locator('[data-mirror-close]').click();};
 const ready=(p=page)=>p.waitForFunction(()=>!!document.querySelector('[data-mirror-command="now"]')&&!document.querySelector('[data-mirror-command="now"]').disabled);
