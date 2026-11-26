@@ -4,3 +4,6 @@ vendor/pptx-preview-bundle.js
 .env*
 .vercel/
 test-results/
+tests/*.png
+tests/*-result.json
+tests/transcription-*.json
