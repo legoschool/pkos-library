@@ -4,7 +4,7 @@
 .drive-map{max-width:1320px;margin:0 auto;padding:24px 28px 40px;display:flex;flex-direction:column;gap:14px;min-height:100%}
 .drive-head{display:flex;flex-wrap:wrap;gap:14px 24px;align-items:flex-end;justify-content:space-between}
 .drive-title h1{font-size:26px;letter-spacing:-.02em;margin-top:2px;text-wrap:balance}
-.drive-status{font-size:13px;color:var(--muted);margin-top:4px}
+.drive-status{font-size:13px;color:var(--muted);margin-top:4px;word-break:keep-all;text-wrap:pretty}
 .drive-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .drive-search{display:flex;align-items:center;gap:8px;border:1px solid #d8d6d1;border-radius:8px;padding:0 10px;background:#fff;min-width:min(340px,100%)}
 .drive-search input{border:0;padding:9px 0;flex:1;outline:none;background:transparent}
@@ -107,3 +107,9 @@
 .dg-sample{flex-basis:100%;font-size:11.5px;color:var(--muted);margin-top:2px;word-break:break-all}
 .dg-sample code{font-size:11px;background:#f6f5f2;padding:1px 4px;border-radius:4px}
 @media (max-width:1100px){.drive-body.is-graph{grid-template-columns:1fr}.dg-host{height:62vh}}
+
+/* 체험용 가상 드라이브로 가는 글 단추 */
+.drive-card .drive-demo-link{display:block;margin-top:14px;font-size:14px}
+/* 휴대폰: 칸 범례가 지도를 덮어 가리므로 숨긴다(칸 이름은 지도 위 무리 이름으로 보인다) */
+@media (max-width:700px){.dg-legend{display:none}}
+.drive-legend{word-break:keep-all;text-wrap:pretty}

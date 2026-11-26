@@ -8,16 +8,18 @@ const SPLIT=1200,MAX_DEPTH=3,MIN_FILES=2,TOP_WORDS=14,PER_NODE=6,MIN_SCORE=1.6;
 const STOP=new Set(['사본','최종','수정','수정본','파일','자료','폴더','기타','모음','정리','버전','new','old','copy','final','the','and','for','of','to','in','이미지','image','img','사진','영상','동영상','png','jpg','jpeg','pdf','pptx','ppt','hwp','hwpx','docx','xlsx','gsheet','gdoc','gslides','gform','zip','mp4','mp3','txt','md','html','js','css','json','py','csv','에서','으로','하는','하기','위한','관련','및','의','을','를','이','가','은','는','에','와','과','도','안','외','등','제목','없음','untitled','제목없음','공유','원본','백업','임시','test','index','readme','main','src','assets','scripts','data','file','files','page','pages','temp','tmp','download','다운로드','초','중','고','학년','반','차시','1학기','2학기','학기','년','월','일','kakaotalk','카카오톡','캡처','screenshot','스크린샷','exported','크기변환','dsc','dcim','photo','video','output','www','node','lib','dist','build','thumb','thumbnail','icon','icons','font','fonts','media','sample','samples','ver','v1','v2','v3','편집','완성','최신','작업','작업본','초안','검토','확인','제출','결과','계획','계획서','보고서','양식','서식','안내','협의록']);
 const GENERIC_FILE=/^(index|readme|main|app|style|script|package|package-lock|license|thumbs|desktop|image|img|photo|screenshot|untitled|제목 없음|제목없음|새 문서|새 텍스트 문서|copy|사본|\d+)(\s*\(\d+\))?\.[a-z0-9]+$/i;
 
-const words=name=>name.toLowerCase().replace(/\.[a-z0-9]{1,6}$/,'').split(/[^0-9a-z가-힣]+/).filter(w=>w.length>=2&&!STOP.has(w)&&!/^\d+$/.test(w)&&!/^20\d\d/.test(w)&&!/^\d+(차|회|기|번|장|강|편|부)$/.test(w)&&!(/\d/.test(w)&&/[a-z]/.test(w))&&!/^[a-z]{2}$/.test(w));
+const words=name=>name.toLowerCase().replace(/\.[a-z0-9]{1,6}$/,'').split(/[^0-9a-z가-힣]+/).filter(w=>w.length>=2&&!STOP.has(w)&&!/^\d+$/.test(w)&&!/^20\d\d/.test(w)&&!/^\d+(차|회|기|번|장|강|편|부|차시|회차)$/.test(w)&&!(/\d/.test(w)&&/[a-z]/.test(w))&&!/^[a-z]{2}$/.test(w));
 // 「(1)」, 「의 사본」, 「사본 -」 같은 꼬리를 떼어 같은 파일을 알아본다.
 const sameKey=name=>{const n=name.toLowerCase().replace(/^사본\s*-\s*/,'').replace(/의 사본/g,'').replace(/\s*\(\d+\)(?=\.[a-z0-9]+$|$)/,'').replace(/\s+/g,' ').trim();return n.replace(/\.[a-z0-9]+$/,'').length>=6&&!GENERIC_FILE.test(n)?n:'';};
 
 export function buildRelations(m){
  const N=m.N,isNode=new Uint8Array(N),nodes=[];
+ // 작은 드라이브는 더 잘게 나눠야 지도가 한두 덩어리로 뭉치지 않는다(큰 드라이브는 1,200개 그대로).
+ const split=Math.min(SPLIT,Math.max(150,Math.round(m.files/40)));
  // 1) 묶음 고르기: 맨 위 폴더부터 보고, 파일이 많고 아래 폴더가 여럿이면 한 단계씩 나눈다.
  const expand=d=>{
   const kids=[];for(let c=m.first[d];c>=0;c=m.next[c])if(m.isDir[c]&&m.tot[c]>=MIN_FILES)kids.push(c);
-  if(m.tot[d]>SPLIT&&m.depth[d]<MAX_DEPTH&&kids.length>=2){isNode[d]=2;nodes.push(d);kids.forEach(expand);}
+  if(m.tot[d]>split&&m.depth[d]<MAX_DEPTH&&kids.length>=2){isNode[d]=2;nodes.push(d);kids.forEach(expand);}
   else if(m.tot[d]>=MIN_FILES){isNode[d]=1;nodes.push(d);}
  };
  for(let c=m.rootFirst;c>=0;c=m.next[c])if(m.isDir[c])expand(c);

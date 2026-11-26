@@ -31,7 +31,9 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
 
  async function init(){
   try{
-   kv=await openKV(demo?'pkos-drive-map-demo':'pkos-drive-map-v1');
+   // 체험 서재(?demo=1)는 지어낸 교사 드라이브로 바로 그린다. 연수장 컴퓨터에서도 지도를 보여 줄 수 있게.
+   if(demo){state='opening';paint();const {sampleDrive}=await import('./drive-sample.js');model=buildModel(sampleDrive());meta={at:0,root:'가상 교사 드라이브'};resetGraph();state='ready';notify();return;}
+   kv=await openKV('pkos-drive-map-v1');
    const h=await kv.get('handle');handle=h?.handle||null;meta=(await kv.get('index-meta'))||null;
    const idx=await kv.get('index');
    if(idx?.blob){state='opening';paint();model=buildModel(JSON.parse(await gunzip(idx.blob)));resetGraph();}
@@ -106,6 +108,7 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
  const driveSearch=i=>'https://drive.google.com/drive/search?q='+encodeURIComponent(model.names[i].replace(GOOGLE_EXT,''));
  async function act(kind,i){
   if(!model||!(i>=0&&i<model.N))return;
+  if(demo){toast('체험용 가상 드라이브라 실제 파일은 없습니다. 내 G 드라이브를 연결하면 여기서 바로 열립니다.');return;}
   if(kind==='copy'){const t=winPath(i);try{await navigator.clipboard.writeText(t);toast('경로를 복사했습니다. 탐색기 주소 칸에 붙여 넣으면 열립니다.');}catch{prompt('경로를 복사하세요',t);}return;}
   if(kind==='find'){window.open(driveSearch(i),'_blank','noopener');return;}
   if(kind==='open'){
@@ -232,14 +235,14 @@ export function createDriveMap({demo,toast,driveRoot,icon}){
  function paintProgress(){const p=el?.querySelector('[data-drive-progress]');if(p)p.textContent='G 드라이브 이름을 훑는 중 · '+fmt(scan.count)+'개 · '+scan.last;else paint();}
 
  function headHTML(){
-  const status=model?`파일 ${fmt(model.files)}개 · 폴더 ${fmt(model.dirs)}개 · ${ago(meta?.at)} 훑음${meta?.limited?' · 너무 많아 일부만':''}`:'';
-  return `<header class="drive-head"><div class="drive-title"><span class="eyebrow">이 컴퓨터의 G: 드라이브</span><h1>G 드라이브 지식맵</h1>${status?`<p class="drive-status">${status}</p>`:''}</div><div class="drive-tools">${model?`<label class="drive-search">${icon('search')}<input type="search" data-drive-query placeholder="G 드라이브에서 찾기 (예: 드론 수업)" value="${esc(query)}" aria-label="G 드라이브에서 찾기"></label><div class="drive-modes" role="group" aria-label="지도 보기"><button type="button" data-drive-mode="graph" aria-pressed="${mode==='graph'}">연결 지도</button><button type="button" data-drive-mode="cats" aria-pressed="${mode==='cats'}">분류 기준</button><button type="button" data-drive-folder="-1">실제 폴더</button></div>`:''}${handle?`<button type="button" class="quiet small" data-drive-rescan ${scan?'disabled':''}>다시 훑기</button><button type="button" class="quiet small" data-drive-connect ${scan?'disabled':''}>다른 폴더 연결</button>`:''}</div></header>`;
+  const status=model?demo?`파일 ${fmt(model.files)}개 · 폴더 ${fmt(model.dirs)}개 · 지어낸 이름이라 실제 파일은 없습니다 · <a href="./#v=drive">내 G 드라이브 연결하기</a>`:`파일 ${fmt(model.files)}개 · 폴더 ${fmt(model.dirs)}개 · ${ago(meta?.at)} 훑음${meta?.limited?' · 너무 많아 일부만':''}`:'';
+  return `<header class="drive-head"><div class="drive-title"><span class="eyebrow">${demo?'체험용 가상 교사 드라이브':'이 컴퓨터의 G: 드라이브'}</span><h1>G 드라이브 지식맵</h1>${status?`<p class="drive-status">${status}</p>`:''}</div><div class="drive-tools">${model?`<label class="drive-search">${icon('search')}<input type="search" data-drive-query placeholder="G 드라이브에서 찾기 (예: 드론 수업)" value="${esc(query)}" aria-label="G 드라이브에서 찾기"></label><div class="drive-modes" role="group" aria-label="지도 보기"><button type="button" data-drive-mode="graph" aria-pressed="${mode==='graph'}">연결 지도</button><button type="button" data-drive-mode="cats" aria-pressed="${mode==='cats'}">분류 기준</button><button type="button" data-drive-folder="-1">실제 폴더</button></div>`:''}${handle?`<button type="button" class="quiet small" data-drive-rescan ${scan?'disabled':''}>다시 훑기</button><button type="button" class="quiet small" data-drive-connect ${scan?'disabled':''}>다른 폴더 연결</button>`:''}</div></header>`;
  }
  function bodyHTML(){
   if(state==='loading'||state==='opening')return `<div class="drive-card"><p>${state==='opening'?'저장해 둔 G 드라이브 지도를 펴는 중입니다.':'G 드라이브 지도를 준비하는 중입니다.'}</p></div>`;
   if(!model){
-   if(!supported)return `<div class="drive-card"><h2>이 브라우저에서는 G 드라이브를 열 수 없습니다</h2><p>휴대폰과 Safari는 컴퓨터 폴더를 읽지 못합니다.<br>PC의 Chrome이나 Edge에서 이 주소를 열어 주세요.</p></div>`;
-   return `<div class="drive-card"><span class="drive-card-icon">${icon('folder')}</span><h2>${handle?'G 드라이브를 한 번 더 허용해 주세요':'G 드라이브를 연결해 주세요'}</h2><p>구글 드라이브 앱이 깔린 PC에는 G: 드라이브가 있습니다.<br>연결 창에서 <b>G:</b> 또는 그 안의 <b>내 드라이브</b>를 고르면 됩니다.</p><ol><li>파일 이름만 읽고, 내용은 누를 때만 엽니다.</li><li>지도는 이 브라우저에만 저장하고 인터넷으로 보내지 않습니다.</li><li>PC마다 처음 한 번만 고르면 다음부터 기억합니다.<br>「매번 허용」을 고르면 다시 묻지 않습니다.</li></ol><button type="button" class="primary" ${handle?'data-drive-rescan':'data-drive-connect'} ${scan?'disabled':''}>${handle?'G 드라이브 다시 허용하기':'G 드라이브 연결하기'}</button>${error?`<p class="error">${esc(error)}</p>`:''}</div>`;
+   if(!supported)return `<div class="drive-card"><h2>이 브라우저에서는 G 드라이브를 열 수 없습니다</h2><p>휴대폰과 Safari는 컴퓨터 폴더를 읽지 못합니다.<br>PC의 Chrome이나 Edge에서 이 주소를 열어 주세요.</p><a class="text-link drive-demo-link" href="?demo=1#v=drive">가상 교사 드라이브로 지도 살펴보기</a></div>`;
+   return `<div class="drive-card"><span class="drive-card-icon">${icon('folder')}</span><h2>${handle?'G 드라이브를 한 번 더 허용해 주세요':'G 드라이브를 연결해 주세요'}</h2><p>구글 드라이브 앱이 깔린 PC에는 G: 드라이브가 있습니다.<br>연결 창에서 <b>G:</b> 또는 그 안의 <b>내 드라이브</b>를 고르면 됩니다.</p><ol><li>파일 이름만 읽고, 내용은 누를 때만 엽니다.</li><li>지도는 이 브라우저에만 저장하고 인터넷으로 보내지 않습니다.</li><li>PC마다 처음 한 번만 고르면 다음부터 기억합니다.<br>「매번 허용」을 고르면 다시 묻지 않습니다.</li></ol><button type="button" class="primary" ${handle?'data-drive-rescan':'data-drive-connect'} ${scan?'disabled':''}>${handle?'G 드라이브 다시 허용하기':'G 드라이브 연결하기'}</button><a class="text-link drive-demo-link" href="?demo=1#v=drive">가상 교사 드라이브로 먼저 살펴보기</a>${error?`<p class="error">${esc(error)}</p>`:''}</div>`;
   }
   if(mode==='graph')return `${error?`<p class="error drive-error">${esc(error)}</p>`:''}${graphBodyHTML()}`;
   return `${error?`<p class="error drive-error">${esc(error)}</p>`:''}<div class="drive-body"><div class="drive-canvas">${svgHTML()}<p class="drive-legend">${mode==='topics'?'주제 사전의 낱말이 이름에 든 파일 수입니다. 한 파일이 여러 주제에 들 수 있습니다.':focusCat>=0?'원 크기는 파일 수입니다. 가운데를 누르면 전체 지도로 돌아갑니다.':'「드라이브 폴더 재구성안」 7판의 칸입니다. 원 크기는 파일 수입니다.'}</p></div><aside class="drive-panel">${panelHTML()}</aside></div>`;

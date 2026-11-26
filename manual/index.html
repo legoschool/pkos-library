@@ -30,6 +30,8 @@ figure img{display:block;width:100%;height:auto;border:1px solid var(--line);bor
 figcaption{font-size:14px;color:var(--muted);margin-top:8px;text-align:center}
 .phones{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:22px 0}
 .phones figure{margin:0}
+p,.legend span,figcaption,blockquote{text-wrap:pretty}h2,h3{text-wrap:balance}
+blockquote{margin:14px 0 22px;padding:12px 16px;background:var(--brand-soft);border-left:4px solid var(--brand);border-radius:8px}blockquote p{margin:0}
 .legend{list-style:none;padding:12px 16px;margin:6px 0 22px;background:var(--paper);border:1px solid var(--line);border-radius:10px;font-size:15px}
 .legend li{display:flex;gap:10px;margin:6px 0}
 .legend b{flex:none;color:var(--mark);font-size:17px;line-height:1.6}
@@ -68,7 +70,7 @@ figcaption{font-size:14px;color:var(--muted);margin-top:8px;text-align:center}
 <p>실습은 모두 체험 서재에서 합니다. 체험 서재는 주소 끝에 <code>?demo=1</code>이 붙은 서재로, 가상 기록 48개가 들어 있고 내 서재와 저장소가 따로라서 실습 중에 무엇을 가져오거나 지워도 내 기록은 바뀌지 않습니다.</p>
 
 
-<nav class="toc" aria-label="목차"><p>목차</p><ol><li><a href="#준비물">준비물</a></li><li><a href="#준비-조건-구글-드라이브-데스크톱과-오프라인-사용">준비 조건: 구글 드라이브 데스크톱과 오프라인 사용</a></li><li><a href="#80분-실습-진행표">80분 실습 진행표</a></li><li><a href="#0-처음-열었을-때">0. 처음 열었을 때</a></li><li><a href="#실습-1-체험-서재-열고-화면-읽기-5분">실습 1. 체험 서재 열고 화면 읽기</a></li><li><a href="#실습-2-첫-기록-쓰기와-다른-기록-연결-10분">실습 2. 첫 기록 쓰기와 다른 기록 연결</a></li><li><a href="#실습-3-기록-찾기-5분">실습 3. 기록 찾기</a></li><li><a href="#실습-4-실습-카드-1차-가져오기-5분">실습 4. 실습 카드 1차 가져오기</a></li><li><a href="#실습-5-카드-읽기-원본-열기-바둑판-보기-5분">실습 5. 카드 읽기, 원본 열기, 바둑판 보기</a></li><li><a href="#실습-6-서재-현황과-지식맵-15분">실습 6. 서재 현황과 지식맵</a></li><li><a href="#실습-7-2차-카드-파일로-갱신하기-10분">실습 7. 2차 카드 파일로 갱신하기</a></li><li><a href="#실습-8-백업-내보내기-5분">실습 8. 백업 내보내기</a></li><li><a href="#실습-9-PC-선택-실습-카드-파일-자동-반영과-탐색기-연결-10분">실습 9. PC 선택 실습: 카드 파일 자동 반영과 탐색기 연결</a></li><li><a href="#실습-10-마무리-점검과-체험-서재-되돌리기-5분">실습 10. 마무리 점검과 체험 서재 되돌리기</a></li><li><a href="#블록-편집과-데이터베이스">블록 편집과 데이터베이스</a></li><li><a href="#글자-인식-음성-파일-받아쓰기-의미로-찾기">글자 인식, 음성 파일 받아쓰기, 의미로 찾기</a></li><li><a href="#휴대폰에서-쓰기">휴대폰에서 쓰기</a></li><li><a href="#내-주소로-가져가기">내 주소로 가져가기</a></li><li><a href="#자주-묻는-것">자주 묻는 것</a></li></ol></nav><h2 id="준비물">준비물</h2>
+<nav class="toc" aria-label="목차"><p>목차</p><ol><li><a href="#준비물">준비물</a></li><li><a href="#준비-조건-구글-드라이브-데스크톱과-오프라인-사용">준비 조건: 구글 드라이브 데스크톱과 오프라인 사용</a></li><li><a href="#80분-실습-진행표">80분 실습 진행표</a></li><li><a href="#0-처음-열었을-때">0. 처음 열었을 때</a></li><li><a href="#g-드라이브-지식맵">G 드라이브 지식맵</a></li><li><a href="#실습-1-체험-서재-열고-화면-읽기-5분">실습 1. 체험 서재 열고 화면 읽기</a></li><li><a href="#실습-2-첫-기록-쓰기와-다른-기록-연결-10분">실습 2. 첫 기록 쓰기와 다른 기록 연결</a></li><li><a href="#실습-3-기록-찾기-5분">실습 3. 기록 찾기</a></li><li><a href="#실습-4-실습-카드-1차-가져오기-5분">실습 4. 실습 카드 1차 가져오기</a></li><li><a href="#실습-5-카드-읽기-원본-열기-바둑판-보기-5분">실습 5. 카드 읽기, 원본 열기, 바둑판 보기</a></li><li><a href="#실습-6-서재-현황과-지식맵-15분">실습 6. 서재 현황과 지식맵</a></li><li><a href="#실습-7-2차-카드-파일로-갱신하기-10분">실습 7. 2차 카드 파일로 갱신하기</a></li><li><a href="#실습-8-백업-내보내기-5분">실습 8. 백업 내보내기</a></li><li><a href="#실습-9-PC-선택-실습-카드-파일-자동-반영과-탐색기-연결-10분">실습 9. PC 선택 실습: 카드 파일 자동 반영과 탐색기 연결</a></li><li><a href="#실습-10-마무리-점검과-체험-서재-되돌리기-5분">실습 10. 마무리 점검과 체험 서재 되돌리기</a></li><li><a href="#블록-편집과-데이터베이스">블록 편집과 데이터베이스</a></li><li><a href="#글자-인식-음성-파일-받아쓰기-의미로-찾기">글자 인식, 음성 파일 받아쓰기, 의미로 찾기</a></li><li><a href="#휴대폰에서-쓰기">휴대폰에서 쓰기</a></li><li><a href="#내-주소로-가져가기">내 주소로 가져가기</a></li><li><a href="#자주-묻는-것">자주 묻는 것</a></li></ol></nav><h2 id="준비물">준비물</h2>
 
 <ul>
 <li>PC의 크롬 또는 엣지. 카드 파일 자동 반영과 PC 폴더 자동 백업은 PC의 크롬·엣지에서만 됩니다.</li>
@@ -226,12 +228,40 @@ figcaption{font-size:14px;color:var(--muted);margin-top:8px;text-align:center}
 
 <figure><a href="img/01-guide.png" target="_blank" rel="noopener"><img src="img/01-guide.png" alt="처음 열면 나오는 서재 안내 1/5" width="1280" height="800" loading="lazy"></a><figcaption>처음 열면 나오는 서재 안내 1/5</figcaption></figure>
 
-<p>안내를 닫으면 빈 내 서재가 보입니다. 내 서재에 바로 쓰려면 ①을, 이미 가진 백업이나 Markdown 파일을 넣으려면 ②를 누릅니다. 실습은 ③을 눌러 체험 서재에서 합니다.</p>
+<p>안내를 닫으면 첫 화면으로 「G 드라이브 지식맵」이 열립니다(아래 「G 드라이브 지식맵」 절). 기록을 쓰려면 왼쪽 메뉴의 「모든 기록」을 누릅니다. 기록이 하나도 없으면 아래 빈 서재 화면이 보입니다. 내 서재에 바로 쓰려면 ①을, 이미 가진 백업이나 Markdown 파일을 넣으려면 ②를 누릅니다. 실습은 ③을 눌러 체험 서재에서 합니다.</p>
 
 
 <figure><a href="img/02-welcome.png" target="_blank" rel="noopener"><img src="img/02-welcome.png" alt="빈 내 서재의 첫 화면" width="1280" height="800" loading="lazy"></a><figcaption>빈 내 서재의 첫 화면</figcaption></figure>
 
 <ul class="legend"><li><b>①</b><span>「첫 기록 쓰기」</span></li><li><b>②</b><span>「파일 가져오기」: Markdown, 텍스트, 백업·카드 파일(.pkem)을 서재에 넣습니다. .pkem 파일을 고르면 「백업 파일 가져오기」와 똑같이 기록으로 풀려 들어갑니다.</span></li><li><b>③</b><span>「가상 자료 48개로 먼저 살펴보기」: 체험 서재로 갑니다.</span></li></ul>
+
+<h2 id="g-드라이브-지식맵">G 드라이브 지식맵</h2>
+
+<p>구글 드라이브 데스크톱이 깔린 PC에는 G: 드라이브가 있습니다. 기록장은 그 안의 파일 이름만 훑어 「드라이브 폴더 재구성안」의 칸(01 수업, 02 주제, 03 사업, 04 강의·연수 … 10 도구·참고자료)으로 나누고, 자료끼리 어디서 이어지는지 지도로 보여 줍니다. 파일 내용은 누를 때만 열고, 지도는 이 브라우저에만 저장해 인터넷으로 보내지 않습니다.</p>
+
+<figure><a href="img/d5-drive-connect.png" target="_blank" rel="noopener"><img src="img/d5-drive-connect.png" alt="G 드라이브를 연결하기 전 첫 화면" width="1440" height="900" loading="lazy"></a><figcaption>G 드라이브를 연결하기 전 첫 화면</figcaption></figure>
+
+<ul class="legend"><li><b>①</b><span>「G 드라이브 연결하기」: 폴더 고르기 창에서 G: 또는 그 안의 「내 드라이브」를 고릅니다. PC마다 처음 한 번만 고르고, 「매번 허용」을 고르면 다음부터 묻지 않습니다. PC의 Chrome·Edge에서만 됩니다.</span></li><li><b>②</b><span>「가상 교사 드라이브로 먼저 살펴보기」: 지어낸 교사 드라이브(파일 1만여 개)로 지도를 바로 엽니다. 실제 파일은 없습니다.</span></li></ul>
+
+<h3 id="연결-지도">연결 지도</h3>
+
+<figure><a href="img/d1-drive-graph.png" target="_blank" rel="noopener"><img src="img/d1-drive-graph.png" alt="가상 교사 드라이브의 연결 지도" width="1440" height="900" loading="lazy"></a><figcaption>가상 교사 드라이브의 연결 지도</figcaption></figure>
+
+<ul class="legend"><li><b>①</b><span>찾기 칸: 낱말을 넣으면 이름이 맞는 묶음만 밝게 남고 오른쪽에 찾은 파일·폴더가 나옵니다.</span></li><li><b>②</b><span>보기 단추: 「연결 지도」, 칸별 원형 지도인 「분류 기준」, 폴더 모양 그대로인 「실제 폴더」.</span></li><li><b>③</b><span>칸 범례: 누르면 그 칸의 원을 숨기거나 다시 보입니다.</span></li><li><b>④</b><span>원 하나가 뜻이 통하는 폴더 묶음입니다. 원 크기는 파일 수, 선 굵기는 연결의 세기입니다. 같은 칸끼리 무리를 짓고, 칸을 건너는 연결은 보라색입니다. 휠로 확대하고 빈 곳을 끌어 옮깁니다.</span></li></ul>
+
+<h3 id="이어진-이유-읽기">이어진 이유 읽기</h3>
+
+<figure><a href="img/d2-drive-node.png" target="_blank" rel="noopener"><img src="img/d2-drive-node.png" alt="드론 동아리 묶음을 누른 화면" width="1440" height="900" loading="lazy"></a><figcaption>「드론 동아리」 묶음을 누른 화면</figcaption></figure>
+
+<ul class="legend"><li><b>①</b><span>고른 묶음과 칸, 파일 수, 자주 쓰인 낱말과 주제입니다. 「폴더 안 보기」, 「경로 복사」, 「드라이브에서 찾기」로 원본에 갑니다.</span></li><li><b>②</b><span>관련 자료 수와 그중 다른 칸에 있는 곳의 수입니다.</span></li><li><b>③</b><span>이어진 이유: 같은 이름 파일이 두 곳에 있음, 같은 주제(드론, 사회정서, 업무 자동화 등 18가지), 이름에 함께 쓰인 낱말. 같은 파일의 예도 보입니다.</span></li></ul>
+
+<h3 id="낱말로-찾기">낱말로 찾기</h3>
+
+<figure><a href="img/d3-drive-search.png" target="_blank" rel="noopener"><img src="img/d3-drive-search.png" alt="바이브 코딩으로 찾은 화면" width="1440" height="900" loading="lazy"></a><figcaption>「바이브 코딩」으로 찾은 화면</figcaption></figure>
+
+<ul class="legend"><li><b>①</b><span>찾을 낱말. 띄어 쓴 두 낱말은 둘 다 든 이름을 찾습니다.</span></li><li><b>②</b><span>찾은 결과: 수업, 강의, 사업, 원고 칸에 흩어진 같은 주제의 폴더가 한눈에 모입니다. 기록 목록의 찾기 칸 아래에도 G 드라이브 결과가 함께 나옵니다.</span></li></ul>
+
+<blockquote><p><b>남에게 보여 줄 때</b> 연수장 컴퓨터나 휴대폰에는 내 G 드라이브가 없습니다. 이럴 때는 <a href="../?demo=1#v=drive">체험 서재의 G 드라이브 지식맵</a>(<code>legoschool.github.io/pkos-library/?demo=1#v=drive</code>)을 엽니다. 개인 자료가 하나도 나오지 않습니다.</p></blockquote>
 
 <h2 id="실습-1-체험-서재-열고-화면-읽기-5분">실습 1. 체험 서재 열고 화면 읽기 (5분)</h2>
 

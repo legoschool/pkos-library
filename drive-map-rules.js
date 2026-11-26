@@ -83,7 +83,7 @@ export const SUBS={
 // 소분류를 비워 두면 그 칸의 SUBS 낱말로 정한다.
 export const TOP_RULES=[
  [/^00_Claude지침$/,{cat:'10',sub:'Claude 작업 지침'}],
- [/^00_교사 이운희$/,{cat:'02',children:[
+ [/^00_교사 (이운희|이야기)$/,{cat:'02',children:[
   [/ai-dx|전환\s?지도/i,'06','AI디지털전환 지도'],
   [/책/,'05',''],
   [/^SCHOOL$/,'08','SCHOOL'],
